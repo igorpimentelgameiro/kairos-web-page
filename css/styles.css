@@ -7761,6 +7761,9 @@ textarea.form-control-lg {
   margin-top: 3rem !important;
 }
 
+.mt-10 {
+  margin-top: 6rem !important;
+}
 .mt-auto {
   margin-top: auto !important;
 }
@@ -8256,7 +8259,7 @@ textarea.form-control-lg {
 .text-white-50 {
   --bs-text-opacity: 1;
   color: rgba(255, 255, 255, 0.5) !important;
-  text-align: center;
+  text-align: justify;
   font-size: 20px;
   line-height: 2;
 
@@ -11118,8 +11121,12 @@ body {
 @media (min-width: 992px) {
   .masthead {
     height: 100vh;
-    padding: 0;
+    padding: 8rem 0 0 0;
   }
+  .masthead h1 {
+    margin-top: 0;
+  }
+}
   .masthead h1, .masthead .h1 {
     font-size: 6.5rem;
     line-height: 6.5rem;
@@ -11152,12 +11159,12 @@ body {
   }
 }
 .projects-section .project-text {
-  padding: 3rem;
+  padding: 1rem;
   font-size: 90%;
 }
 @media (min-width: 992px) {
   .projects-section .project-text {
-    padding: 5rem;
+    padding: 1rem;
   }
 }
 
@@ -11302,6 +11309,11 @@ a[href^="https://api.whatsapp.com"] {
   text-decoration: none;
 }
 
+.bg-black.project {
+  height: 100%;           /* mantém altura da coluna */
+  overflow-y: auto;       /* ativa a barra de rolagem vertical se necessário */
+  padding: 2rem 3rem;
+}
 
 .footer {
   padding: 5rem 0;
