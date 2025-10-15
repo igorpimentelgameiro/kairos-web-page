@@ -1,5 +1,5 @@
-import Section from "../componentes/Section";
-import Card from "../componentes/Card";
+import Section from "@componente/Section";
+import Card from "@componente/Card";
 import {Heart, Sparkles, Users} from "lucide-react";
 
 export default function QuemSomos() {

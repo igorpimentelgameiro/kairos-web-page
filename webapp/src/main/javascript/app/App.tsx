@@ -1,13 +1,13 @@
 import {useMemo, useState} from "react";
 import {AnimatePresence, motion} from "framer-motion";
-import Navbar, {type PageKey, PAGES,} from "./componentes/Navbar";
-import Home from "./paginas/Home";
-import QuemSomos from "./paginas/QuemSomos";
-import Kasa from "./paginas/Kasa";
-import Benfeitor from "./paginas/Benfeitor";
-import Contato from "./paginas/Contato";
+import Navbar, {type PageKey, PAGES,} from "@componente/Navbar";
+import Home from "@pagina/Home";
+import QuemSomos from "@pagina/QuemSomos";
+import Kasa from "@pagina/Kasa";
+import Benfeitor from "@pagina/Benfeitor";
+import Contato from "@pagina/Contato";
 import {HandHeart, Mail, MapPin, Phone} from "lucide-react";
-import useDarkMode from "./hooks/darkMode.ts";
+import useDarkMode from "@componente/hooks/useDarkMode";
 
 export default function App() {
     const [page, setPage] = useState<PageKey>("HOME");

@@ -1,5 +1,5 @@
-import Section from "../componentes/Section";
-import Card from "../componentes/Card";
+import Section from "@componente/Section";
+import Card from "@componente/Card";
 import {Mail, MapPin, Phone} from "lucide-react";
 
 export default function Contato() {

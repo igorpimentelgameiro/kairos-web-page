@@ -1,73 +1,44 @@
-# React + TypeScript + Vite
+# Kairos Monolito Modular
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+Este repositório reúne o frontend em React + TypeScript e o backend em Spring Boot em um monolito modular, organizado segundo Clean Architecture, DDD e os princípios SOLID.
 
-Currently, two official plugins are available:
+## Estrutura de pastas
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Babel](https://babeljs.io/) for Fast Refresh
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/) for Fast Refresh
 
-## React Compiler
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+A pasta  mantém os assets estáticos do frontend. Scripts Node são executados a partir da raiz, enquanto o backend possui seus wrappers Gradle em .
 
-## Expanding the ESLint configuration
+## Frontend
 
-If you are developing a production application, we recommend updating the configuration to enable type-aware lint rules:
+- React, TypeScript, Vite.
+- Código-fonte em  utilizando aliases (, , , , ).
+- Componentes, hooks e páginas devem possuir arquivos de teste  escritos com Jest + React Testing Library.
+- Style guide: Airbnb + Prettier; lint via 
+> webapp@0.0.0 lint
+> eslint ..
+- Após qualquer alteração relevante, execute  e 
+> webapp@0.0.0 build
+> tsc -b && vite build.
 
-```js
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
+## Backend
 
-      // Remove tseslint.configs.recommended and replace with this
-      tseslint.configs.recommendedTypeChecked,
-      // Alternatively, use this for stricter rules
-      tseslint.configs.strictTypeChecked,
-      // Optionally, add this for stylistic rules
-      tseslint.configs.stylisticTypeChecked,
+- Spring Boot (Java 21), PostgreSQL, Flyway, H2 para testes.
+- Código organizado por camadas (, , ) com interfaces prefixadas por .
+- Entidades de domínio preferencialmente records sobrescrevendo ,  e  com .
+- Implementações concretas em  anotadas com ,  ou .
+- Repositórios JPA em , modelos com sufixo , utilizando .
 
-      // Other configs...
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
-```
+### Testes
 
-You can also install [eslint-plugin-react-x](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-x) and [eslint-plugin-react-dom](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-dom) for React-specific lint rules:
+- Executar  para a suíte padrão do backend.
+- Executar  para validar as regras ArchUnit.
+- Testes unitários em  e testes de integração () nas camadas de aplicação e infraestrutura com profile .
 
-```js
-// eslint.config.js
-import reactX from 'eslint-plugin-react-x'
-import reactDom from 'eslint-plugin-react-dom'
+## Fluxo de desenvolvimento
 
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
-      // Enable lint rules for React
-      reactX.configs['recommended-typescript'],
-      // Enable lint rules for React DOM
-      reactDom.configs.recommended,
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
-```
+1. **Domínio**: começar pelos testes de caso de uso e modelos de domínio (TDD).
+2. **Infraestrutura**: criar testes de integração, implementar adaptadores reais e scripts Flyway quando necessário.
+3. **Aplicação**: expor casos de uso por controllers, requests/responses e exception handlers com testes de integração.
+4. **Frontend**: ajustar contratos em , atualizar páginas e componentes reutilizando .
+5. Rodar a suíte completa (frontend + backend + ) antes de criar commits. Relatórios de revisão devem ser salvos em .
+

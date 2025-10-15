@@ -23,7 +23,15 @@
     "erasableSyntaxOnly": true,
     "noFallthroughCasesInSwitch": true,
     "noUncheckedSideEffectImports": true,
-    "allowSyntheticDefaultImports": true
+    "allowSyntheticDefaultImports": true,
+    "baseUrl": ".",
+    "paths": {
+      "@app/*": ["src/main/javascript/app/*"],
+      "@componente/*": ["src/main/javascript/componente/*"],
+      "@dominio/*": ["src/main/javascript/dominio/*"],
+      "@pagina/*": ["src/main/javascript/pagina/*"],
+      "@assets/*": ["src/main/javascript/assets/*"]
+    }
   },
-  "include": ["src"]
+  "include": ["src/main/javascript"]
 }

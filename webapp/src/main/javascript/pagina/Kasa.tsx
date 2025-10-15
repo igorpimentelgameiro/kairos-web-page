@@ -1,6 +1,6 @@
-import Section from "../componentes/Section";
-import Card from "../componentes/Card";
-import Pill from "../componentes/Pill";
+import Section from "@componente/Section";
+import Card from "@componente/Card";
+import Pill from "@componente/Pill";
 import {CalendarClock, ChevronRight, MapPin, Sparkles} from "lucide-react";
 
 export default function Kasa() {
