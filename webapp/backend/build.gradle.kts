@@ -4,7 +4,7 @@ plugins {
 	id("io.spring.dependency-management") version "1.1.7"
 }
 
-group = "br.jus.tjpa.kairos"
+group = "com.mov.kairos.kairos"
 version = "0.0.1-SNAPSHOT"
 description = "site com inscricao para retiro do movimento kairos"
 
