@@ -12,4 +12,5 @@ Este projeto visa divulgar nosso carisma, missão e ações através de uma pág
 
 Somos um movimento **sem fins lucrativos**, que acredita na força da comunhão e da espiritualidade para impactar positivamente a vida das pessoas. Nosso site apresenta quem somos, nosso propósito e meios de contato.
 
+
 ---
