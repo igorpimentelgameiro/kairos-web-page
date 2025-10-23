@@ -1,7 +1,7 @@
 import {useState} from "react";
 import {HandHeart, Home, Moon, Phone, Sparkles, Sun, Users} from "lucide-react";
 import type {LucideIcon} from "lucide-react";
-import {NAVIGATION_PAGES, PAGE_LABELS, type PageKey} from "@componente/NavbarTypes";
+import {NAVIGATION_PAGES, PAGE_LABELS, type PageKey} from "@componente/Navbar.types";
 
 export default function Navbar({
                                    current,
@@ -17,6 +17,9 @@ export default function Navbar({
     logoSrc?: string;
 }) {
     const [logoOk, setLogoOk] = useState(true);
+    const logoWrapperClass = `h-11 w-11 rounded-2xl overflow-hidden flex items-center justify-center border transition-colors ${
+        dark ? "bg-white border-white/10" : "bg-white border-black/10"
+    }`;
     const iconMap: Record<PageKey, LucideIcon> = {
         HOME: Home,
         QUEM_SOMOS: Users,
@@ -43,12 +46,14 @@ export default function Navbar({
             <div className="max-w-6xl mx-auto px-4 h-16 flex items-center justify-between">
                 <div className="flex items-center gap-3">
                     {logoOk ? (
-                        <img
-                            src={logoSrc}
-                            alt="Movimento Kairós"
-                            className="h-9 w-9 rounded-xl object-cover"
-                            onError={() => setLogoOk(false)}
-                        />
+                        <div className={`${logoWrapperClass} shadow`}>
+                            <img
+                                src={logoSrc}
+                                alt="Movimento Kairós"
+                                className="h-10 w-10 object-contain"
+                                onError={() => setLogoOk(false)}
+                            />
+                        </div>
                     ) : (
                         <div
                             className="size-9 rounded-xl bg-gradient-to-br from-amber-400 via-rose-400 to-fuchsia-500"/>

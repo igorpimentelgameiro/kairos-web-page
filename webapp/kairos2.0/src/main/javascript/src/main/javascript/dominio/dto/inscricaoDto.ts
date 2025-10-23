@@ -30,6 +30,7 @@ export type InscricaoRequestDto = {
     comprovantePagamento?: string | null;
     consentimentoImagem: boolean;
     consentimentoDados: boolean;
+    observacoes?: string | null;
 };
 
 export type InscricaoResponseDto = {

@@ -1,8 +1,7 @@
 import {useMemo, useState} from "react";
 import {AnimatePresence, motion} from "framer-motion";
 import Navbar from "@componente/Navbar";
-import {NAVIGATION_PAGES, PAGE_LABELS, type PageKey} from "@componente/NavbarTypes";
-import TestInscricaoButton from "@app/TestInscricaoButton";
+import {NAVIGATION_PAGES, PAGE_LABELS, type PageKey} from "@componente/Navbar.types";
 import Home from "@pagina/Home";
 import QuemSomos from "@pagina/QuemSomos";
 import Kasa from "@pagina/Kasa";
@@ -11,10 +10,20 @@ import Contato from "@pagina/Contato";
 import InscricaoRetiroKasaIII from "@pagina/InscricaoRetiroKasaIII";
 import {HandHeart, Mail, MapPin, Phone} from "lucide-react";
 import useDarkMode from "@componente/hooks/useDarkMode";
+import AdminLogin from "@pagina/AdminLogin";
 
 export default function App() {
+    const darkMode = useDarkMode();
+    const isAdminRoute =
+        typeof window !== "undefined" &&
+        window.location.pathname.replace(/\/+$/, "") === "/admin";
+
+    if (isAdminRoute) {
+        return <AdminLogin/>;
+    }
+
+    const {enabled: dark, setEnabled} = darkMode;
     const [page, setPage] = useState<PageKey>("HOME");
-    const {enabled: dark, setEnabled} = useDarkMode();
 
     const CurrentPage = useMemo(() => {
         switch (page) {
@@ -83,8 +92,6 @@ export default function App() {
                     </div>
                 </div>
             </footer>
-
-            {import.meta.env.DEV ? <TestInscricaoButton/> : null}
 
             <button
                 onClick={() => setPage("BENFEITOR")}

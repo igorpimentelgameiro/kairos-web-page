@@ -10,3 +10,5 @@ export const PAGE_LABELS = {
 export type PageKey = keyof typeof PAGE_LABELS;
 
 export const NAVIGATION_PAGES: PageKey[] = ["HOME", "QUEM_SOMOS", "KASA", "BENFEITOR", "CONTATO"];
+
+export const PAGES: Record<PageKey, string> = PAGE_LABELS;

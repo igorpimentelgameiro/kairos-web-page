@@ -2,6 +2,11 @@ import Section from "@componente/Section";
 import Card from "@componente/Card";
 import {Mail, MapPin, Phone} from "lucide-react";
 
+const FIELD_BASE_CLASS =
+    "border rounded-xl px-3 py-2 text-sm bg-white text-neutral-900 placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary/40 dark:bg-neutral-900 dark:text-white dark:placeholder:text-slate-400 dark:border-neutral-700";
+
+const TEXTAREA_CLASS = `${FIELD_BASE_CLASS} min-h-28`;
+
 export default function Contato() {
     return (
         <Section title="Fale Conosco" subtitle="Estamos próximos de você.">
@@ -21,9 +26,9 @@ export default function Contato() {
                 <Card className="p-6">
                     <div className="text-lg font-semibold">Envie uma mensagem</div>
                     <form className="mt-4 grid gap-3">
-                        <input className="border rounded-xl px-3 py-2" placeholder="Seu nome"/>
-                        <input className="border rounded-xl px-3 py-2" placeholder="Seu e-mail"/>
-                        <textarea className="border rounded-xl px-3 py-2 min-h-28" placeholder="Escreva sua mensagem"/>
+                        <input className={FIELD_BASE_CLASS} placeholder="Seu nome"/>
+                        <input className={FIELD_BASE_CLASS} placeholder="Seu e-mail"/>
+                        <textarea className={TEXTAREA_CLASS} placeholder="Escreva sua mensagem"/>
                         <button type="button"
                                 className="px-4 py-2 rounded-xl bg-primary text-primary-foreground font-semibold">
                             Enviar

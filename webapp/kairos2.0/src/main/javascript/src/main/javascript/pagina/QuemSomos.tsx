@@ -40,8 +40,18 @@ export default function QuemSomos() {
                 <div className="relative pl-6 border-l">
                     {[
                         {t: "Mar/2023", d: "Fundação do Movimento Kairós."},
-                        {t: "2024", d: "Primeiras edições do Retiro KASA."},
-                        {t: "2025", d: "Expansão das frentes de serviço e acolhimento."},
+                        {
+                            t: "2024",
+                            d: "Primeira edição do Retiro KASA, reunindo jovens em um fim de semana de imersão, cura e renovação."
+                        },
+                        {
+                            t: "2025",
+                            d: "Segunda edição do Retiro KASA, trazendo um tempo oportuno em meio a correria do dia-a-dia."
+                        },
+                        {
+                            t: "2025 • Romaria da Juventude",
+                            d: "Nosso Ministério de Música conduziu a romaria com louvores que demonstram a força da juventude Católica, mantendo a juventude unida em oração e alegria ao longo de todo o percurso."
+                        },
                     ].map((i, idx) => (
                         <div key={idx} className="mb-6">
                             <div className="flex items-center gap-2">
