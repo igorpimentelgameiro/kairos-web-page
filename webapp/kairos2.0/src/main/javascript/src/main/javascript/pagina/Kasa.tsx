@@ -1,7 +1,7 @@
 import Section from "@componente/Section";
 import Card from "@componente/Card";
 import Pill from "@componente/Pill";
-import {CalendarClock, ChevronRight, MapPin, Sparkles} from "lucide-react";
+import {CalendarClock, MapPin, Sparkles} from "lucide-react";
 
 type KasaProps = {
     onParticipar: () => void;
@@ -35,10 +35,10 @@ export default function Kasa({onParticipar}: KasaProps) {
                             <div className="p-5">
                                 <Pill><Sparkles className="size-3.5"/> {k.tag}</Pill>
                                 <p className="mt-3 text-muted-foreground">{k.text}</p>
-                                <button
+                                {/*<button
                                     className="mt-4 inline-flex items-center gap-2 px-3 py-2 rounded-xl border text-sm font-semibold">
                                     Saber mais <ChevronRight className="size-4"/>
-                                </button>
+                                </button>*/}
                             </div>
                         </Card>
                     ))}

@@ -1,6 +1,7 @@
 import {getApp, getApps, initializeApp} from "firebase/app";
 import type {FirebaseOptions} from "firebase/app";
 import {getDatabase} from "firebase/database";
+import {getAuth} from "firebase/auth";
 
 type FirebaseConfigKeys =
     | "VITE_FIREBASE_API_KEY"
@@ -37,3 +38,4 @@ if (measurementId) {
 
 export const firebaseApp = getApps().length ? getApp() : initializeApp(firebaseConfig);
 export const firebaseDatabase = getDatabase(firebaseApp);
+export const firebaseAuth = getAuth(firebaseApp);

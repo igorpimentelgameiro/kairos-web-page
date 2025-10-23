@@ -1,4 +1,4 @@
-import {get, push, ref, serverTimestamp} from "firebase/database";
+import {get, push, ref, serverTimestamp, update} from "firebase/database";
 import {firebaseDatabase} from "@dominio/firebase/app";
 import type {InscricaoRequestDto} from "@dominio/dto/inscricaoDto";
 
@@ -49,4 +49,14 @@ export const listarInscricoes = async (): Promise<InscricaoRegistrada[]> => {
             criadoEm: criadoEmNumero,
         } as InscricaoRegistrada;
     });
+};
+
+export const atualizarInscricao = async (inscricao: InscricaoRegistrada): Promise<void> => {
+    const {id, ...dados} = inscricao;
+    const referencia = ref(firebaseDatabase, `${INSCRICOES_PATH}/${id}`);
+    const payload: Record<string, unknown> = {
+        ...dados,
+        idade: Number.isFinite(Number(dados.idade)) ? Number(dados.idade) : 0,
+    };
+    await update(referencia, payload);
 };

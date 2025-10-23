@@ -47,7 +47,7 @@ export default function Home({onCTA, goBenfeitor}: { onCTA: () => void; goBenfei
                             className="aspect-[16/10] w-full bg-cover bg-center"
                             style={{
                                 backgroundImage:
-                                    "url(/assets/img/bg-masthead.jpg), url(https://images.unsplash.com/photo-1508780709619-79562169bc64?q=80&w=1400&auto=format&fit=crop)",
+                                    "url(/assets/img/bg-masthead.jpg)",
                             }}
                         />
                         <div className="p-5">

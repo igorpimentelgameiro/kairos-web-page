@@ -110,7 +110,7 @@ const criarFormularioInicial = (): InscricaoFormData => ({
 });
 
 const FIELD_BASE_CLASS =
-    "border rounded-xl px-3 py-2 text-sm bg-white text-neutral-900 placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary/40 dark:bg-neutral-900 dark:text-white dark:placeholder:text-slate-400 dark:border-neutral-700";
+    "border rounded-xl px-3 py-2 text-sm bg-background text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary/40";
 
 const TEXTAREA_CLASS = `${FIELD_BASE_CLASS} min-h-[96px]`;
 

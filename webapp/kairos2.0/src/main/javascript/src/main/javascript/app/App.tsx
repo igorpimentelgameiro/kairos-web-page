@@ -8,21 +8,24 @@ import Kasa from "@pagina/Kasa";
 import Benfeitor from "@pagina/Benfeitor";
 import Contato from "@pagina/Contato";
 import InscricaoRetiroKasaIII from "@pagina/InscricaoRetiroKasaIII";
-import {HandHeart, Mail, MapPin, Phone} from "lucide-react";
-import useDarkMode from "@componente/hooks/useDarkMode";
+import {Github, HandHeart, Instagram, Linkedin, Mail, MapPin, Phone} from "lucide-react";
+import useTheme from "@componente/hooks/useTheme";
 import AdminLogin from "@pagina/AdminLogin";
 
 export default function App() {
-    const darkMode = useDarkMode();
+    const {temaAtual, definirTema, temasDisponiveis} = useTheme();
     const isAdminRoute =
         typeof window !== "undefined" &&
         window.location.pathname.replace(/\/+$/, "") === "/admin";
 
     if (isAdminRoute) {
-        return <AdminLogin/>;
+        return (
+            <div className="min-h-screen bg-background text-foreground" data-theme={temaAtual.nome}>
+                <AdminLogin temaAtual={temaAtual} temas={temasDisponiveis} onTemaChange={definirTema}/>
+            </div>
+        );
     }
 
-    const {enabled: dark, setEnabled} = darkMode;
     const [page, setPage] = useState<PageKey>("HOME");
 
     const CurrentPage = useMemo(() => {
@@ -45,49 +48,92 @@ export default function App() {
     }, [page]);
 
     return (
-        <div className="min-h-screen bg-background text-foreground">
+        <div className="min-h-screen bg-background text-foreground" data-theme={temaAtual.nome}>
             <Navbar
                 current={page}
                 onNavigate={setPage}
-                toggleTheme={() => setEnabled(!dark)}
-                dark={dark}
                 logoSrc="/assets/img/logo.png"
+                temaAtual={temaAtual}
+                temas={temasDisponiveis}
+                onTemaChange={definirTema}
             />
 
             <AnimatePresence mode="wait">
-                <motion.main key={page} initial={{opacity: 0, y: 6}} animate={{opacity: 1, y: 0}}
-                             exit={{opacity: 0, y: -6}} transition={{duration: 0.25}}>
+                <motion.main
+                    key={page}
+                    initial={{opacity: 0, y: 6}}
+                    animate={{opacity: 1, y: 0}}
+                    exit={{opacity: 0, y: -6}}
+                    transition={{duration: 0.25}}
+                >
                     {CurrentPage}
                 </motion.main>
             </AnimatePresence>
 
             <footer className="mt-10 border-t">
-                <div className="max-w-6xl mx-auto px-4 py-10 grid md:grid-cols-3 gap-6 text-sm">
-                    <div>
+                <div className="max-w-6xl mx-auto grid gap-8 px-4 py-10 text-sm md:grid-cols-2 lg:grid-cols-4">
+                    <div className="space-y-2">
                         <div className="font-semibold">Movimento Kairós</div>
-                        <p className="mt-2 text-muted-foreground">Copyright © {new Date().getFullYear()} • Belém, PA</p>
+                        <p className="text-muted-foreground">Viver o Tempo da Graça</p>
                     </div>
-                    <div>
+                    <div className="space-y-2">
                         <div className="font-semibold">Contatos</div>
-                        <ul className="mt-2 space-y-1 text-muted-foreground">
-                            <li className="flex items-center gap-2"><Mail
-                                className="size-4"/> movimentokairos23@gmail.com
+                        <ul className="space-y-1 text-muted-foreground">
+                            <li className="flex items-center gap-2">
+                                <Mail className="size-4"/> movimentokairos23@gmail.com
                             </li>
-                            <li className="flex items-center gap-2"><Phone className="size-4"/> +55 (91) 98615-3379</li>
-                            <li className="flex items-center gap-2"><MapPin className="size-4"/> Av. Cons. Furtado, 1571
-                                — Nazaré, Belém/PA
+                            <li className="flex items-center gap-2">
+                                <Phone className="size-4"/> +55 (91) 98615-3379
+                            </li>
+                            <li className="flex items-center gap-2">
+                                <MapPin className="size-4"/> Av. Cons. Furtado, 1571 — Nazaré, Belém/PA
                             </li>
                         </ul>
                     </div>
-                    <div>
+                    <div className="space-y-2">
                         <div className="font-semibold">Atalhos</div>
-                        <div className="mt-2 flex flex-wrap gap-2">
+                        <div className="flex flex-wrap gap-2">
                             {NAVIGATION_PAGES.map((k) => (
-                                <button key={k} onClick={() => setPage(k)}
-                                        className="px-3 py-1.5 rounded-xl border hover:bg-accent hover:text-accent-foreground">
+                                <button
+                                    key={k}
+                                    onClick={() => setPage(k)}
+                                    className="px-3 py-1.5 rounded-xl border hover:bg-accent hover:text-accent-foreground"
+                                >
                                     {PAGE_LABELS[k]}
                                 </button>
                             ))}
+                        </div>
+                    </div>
+                    <div className="space-y-2 text-muted-foreground">
+                        <div className="font-semibold">Desenvolvido por Igor Pimentel Gameiro</div>
+                        <div className="flex items-center gap-4">
+                            <a
+                                href="https://github.com/igorpimentelgameiro"
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                aria-label="GitHub • Igor Pimentel Gameiro"
+                                className="inline-flex items-center gap-2 hover:text-foreground transition"
+                            >
+                                <Github className="size-4"/> GitHub
+                            </a>
+                            <a
+                                href="https://www.instagram.com/_igorpgameiro/"
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                aria-label="Instagram • Igor Pimentel Gameiro"
+                                className="inline-flex items-center gap-2 hover:text-foreground transition"
+                            >
+                                <Instagram className="size-4"/> Instagram
+                            </a>
+                            <a
+                                href="https://www.linkedin.com/in/igorpimentelg/"
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                aria-label="LinkedIn • Igor Pimentel Gameiro"
+                                className="inline-flex items-center gap-2 hover:text-foreground transition"
+                            >
+                                <Linkedin className="size-4"/> LinkedIn
+                            </a>
                         </div>
                     </div>
                 </div>
