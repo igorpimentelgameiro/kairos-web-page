@@ -54,6 +54,17 @@ export const THEMES = {
         accent: "#1F2937",
         accentFg: "#E5E7EB",
     },
+    "Vanilla + Teal": {
+        bg: "#FFFFFF",
+        surface: "#8291A0",
+        fg: "#1F2933",
+        muted: "#1F2021",
+        border: "#F5E6AA",
+        primary: "#F5E6AA",
+        primaryFg: "#1F2933",
+        accent: "#78A096",
+        accentFg: "#FFFFFF",
+    },
 } as const;
 
 export type ThemeName = keyof typeof THEMES;

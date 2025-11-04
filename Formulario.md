@@ -1,4 +1,4 @@
-[19:33, 14/10/2025] Iasmin Abreu: Nome completo
+Nome completo
 Data de nascimento
 Idade
 Se for menor, informar o nome do responsável legal e o contato
@@ -15,7 +15,7 @@ Possui algum dom? Cantar, tocar um instrumento, dançar, falar em público, teat
 Forma de pagamento - pix, credito, dinheiro
 Comprovante de pagamento
 Consentimento de imagem
-[19:34, 14/10/2025] Iasmin Abreu: CONSENTIMENTO PARA TRATAMENTO DE DADOS PESSOAIS E USO DE IMAGENS, SONS, VÍDEOS E VOZ - LGPD
+CONSENTIMENTO PARA TRATAMENTO DE DADOS PESSOAIS E USO DE IMAGENS, SONS, VÍDEOS E VOZ - LGPD
 
 Ao preencher e enviar este formulário, você está ciente e consente com o tratamento dos seus dados pessoais, bem como com a utilização de imagens, sons, vídeos e voz, conforme estabelecido pela Lei Geral de Proteção de Dados Pessoais (LGPD - Lei nº 13.709/2018). Os dados fornecidos serão utilizados exclusivamente para os fins relacionados à inscrição, organização e divulgação do evento, conforme descrito na nossa Política de Privacidade.
 
