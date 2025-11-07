@@ -115,9 +115,6 @@ export default function Benfeitor() {
                 </Card>
                 <Card className="p-6">
                     <div className="text-lg font-semibold">Transparência</div>
-                    <p className="mt-3 text-muted-foreground">
-                        Publicaremos relatórios de prestação de contas a cada edição do KASA e atividades do movimento.
-                    </p>
                     <ul className="mt-4 list-disc pl-5 text-muted-foreground space-y-1">
                         <li>Sem fins lucrativos e sem apoio financeiro externo.</li>
                         <li>Colaboração de pessoas comprometidas com causas sociais.</li>

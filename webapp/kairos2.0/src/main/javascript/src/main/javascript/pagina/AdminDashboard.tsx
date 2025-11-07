@@ -1,8 +1,13 @@
-import {useEffect, useMemo, useState} from "react";
+import {useEffect, useMemo, useRef, useState} from "react";
 import type {ChangeEvent, FormEvent} from "react";
 import {ChevronDown, ChevronUp, LayoutList} from "lucide-react";
 import type {InscricaoRegistrada} from "@dominio/servicos/inscricaoFirebaseServico";
-import {atualizarInscricao, listarInscricoes} from "@dominio/servicos/inscricaoFirebaseServico";
+import {
+    atualizarInscricao,
+    listarInscricoes,
+    removerInscricoes,
+} from "@dominio/servicos/inscricaoFirebaseServico";
+import type {ComprovantePagamentoDto} from "@dominio/dto/inscricaoDto";
 import {sair} from "@dominio/servicos/authServico";
 import ThemeSwitcher from "@componente/ThemeSwitcher";
 import type {ThemeName, ThemeOption} from "@componente/theme/themes";
@@ -40,6 +45,13 @@ const formatDate = (isoDate?: string): string => {
 const formatTimestamp = (timestamp?: number): string => {
     if (!timestamp) return "-";
     return new Date(timestamp).toLocaleString("pt-BR");
+};
+
+const extrairComprovanteNome = (
+    comprovante: InscricaoRegistrada["comprovantePagamento"],
+): string => {
+    if (!comprovante) return "-";
+    return comprovante.nomeArquivo || comprovante.url || "-";
 };
 
 const COLUNAS: Coluna[] = [
@@ -116,7 +128,7 @@ const COLUNAS: Coluna[] = [
     {
         key: "comprovantePagamento",
         label: "Comprovante",
-        accessor: (i) => i.comprovantePagamento ?? "-",
+        accessor: (i) => extrairComprovanteNome(i.comprovantePagamento),
     },
     {
         key: "consentimentoImagem",
@@ -168,6 +180,127 @@ const compararColuna = (a: InscricaoRegistrada, b: InscricaoRegistrada, colunaKe
 
 const ehMenor = (idade?: number): boolean => (idade ?? 0) < 18;
 
+type ComprovanteCellProps = {
+    comprovante?: ComprovantePagamentoDto | null;
+    fallback: string;
+};
+
+const extrairPathDaUrl = (url: string): string | null => {
+    try {
+        const parsed = new URL(url);
+        const nameParam = parsed.searchParams.get("name");
+        if (nameParam) {
+            return decodeURIComponent(nameParam);
+        }
+        const match = parsed.pathname.split("/o/")[1];
+        if (match) {
+            const [path] = match.split("?");
+            return decodeURIComponent(path);
+        }
+    } catch {
+        return null;
+    }
+    return null;
+};
+
+const criarUrlBase64 = (conteudoBase64: string, mimeType: string): string | null => {
+    try {
+        const limpo = conteudoBase64.includes(",")
+            ? conteudoBase64.split(",")[1]
+            : conteudoBase64.trim();
+        const byteString = atob(limpo.replace(/[\r\n\s]/g, ""));
+        const byteArray = new Uint8Array(byteString.length);
+        for (let i = 0; i < byteString.length; i += 1) {
+            byteArray[i] = byteString.charCodeAt(i);
+        }
+        const blob = new Blob([byteArray], {type: mimeType || "application/octet-stream"});
+        return URL.createObjectURL(blob);
+    } catch (error) {
+        console.error("[ComprovanteCell] falha ao converter base64:", error);
+        return null;
+    }
+};
+
+const ComprovanteCell = ({comprovante, fallback}: ComprovanteCellProps) => {
+    const [blobUrl, setBlobUrl] = useState<string | null>(null);
+
+    const link = useMemo(() => {
+        if (!comprovante) {
+            return null;
+        }
+        if (comprovante.url) {
+            return comprovante.url;
+        }
+        return blobUrl;
+    }, [blobUrl, comprovante]);
+
+    useEffect(() => {
+        if (!comprovante?.conteudoBase64) {
+            setBlobUrl(null);
+            return undefined;
+        }
+        const url = criarUrlBase64(comprovante.conteudoBase64, comprovante.mimeType);
+        if (!url) {
+            setBlobUrl(null);
+            return undefined;
+        }
+        setBlobUrl(url);
+        return () => {
+            URL.revokeObjectURL(url);
+        };
+    }, [comprovante?.conteudoBase64, comprovante?.mimeType]);
+
+    if (!comprovante) {
+        return <span>{fallback || "-"}</span>;
+    }
+
+    if (link) {
+        return (
+            <div className="flex flex-col gap-0.5">
+                <a
+                    href={link}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-primary underline text-sm"
+                >
+                    Ver comprovante
+                </a>
+                <span className="text-xs text-muted-foreground">{comprovante.nomeArquivo}</span>
+            </div>
+        );
+    }
+
+    return <span>{fallback || "Sem comprovante."}</span>;
+};
+
+const normalizarTextoCsv = (valor: string): string =>
+    valor
+        .replace(/\r?\n/g, " ")
+        .replace(/\s+/g, " ")
+        .trim();
+
+const gerarCsv = (inscricoes: InscricaoRegistrada[]): string => {
+    const cabecalhos = ["ID", ...COLUNAS.map((coluna) => coluna.label)];
+    const linhas = inscricoes.map((inscricao) => [
+        inscricao.id,
+        ...COLUNAS.map((coluna) => coluna.accessor(inscricao)),
+    ]);
+    const todasAsLinhas = [cabecalhos, ...linhas];
+    return todasAsLinhas
+        .map((linha) =>
+            linha
+                .map((valor) => {
+                    const texto = normalizarTextoCsv(String(valor ?? ""));
+                    if (texto.includes(";") || texto.includes('"')) {
+                        return `"${texto.replace(/"/g, '""')}"`;
+                    }
+                    return texto;
+                })
+                .join(";"),
+        )
+        .join("\n");
+};
+
 type AdminDashboardProps = {
     temaAtual: ThemeOption;
     temas: ThemeOption[];
@@ -188,6 +321,13 @@ export default function AdminDashboard({temaAtual, temas, onTemaChange}: AdminDa
     const [formData, setFormData] = useState<InscricaoRegistrada | null>(null);
     const [salvando, setSalvando] = useState(false);
     const [salvarErro, setSalvarErro] = useState<string | null>(null);
+    const [selecionados, setSelecionados] = useState<string[]>([]);
+    const [excluindo, setExcluindo] = useState(false);
+    const [excluirErro, setExcluirErro] = useState<string | null>(null);
+    const selectAllRef = useRef<HTMLInputElement | null>(null);
+    const [exportando, setExportando] = useState(false);
+    const [exportErro, setExportErro] = useState<string | null>(null);
+    const [comprovantePreviewUrl, setComprovantePreviewUrl] = useState<string | null>(null);
 
     useEffect(() => {
         let ativo = true;
@@ -214,6 +354,37 @@ export default function AdminDashboard({temaAtual, temas, onTemaChange}: AdminDa
             ativo = false;
         };
     }, []);
+
+    useEffect(() => {
+        setSelecionados((prev) =>
+            prev.filter((id) => inscricoes.some((inscricao) => inscricao.id === id)),
+        );
+    }, [inscricoes]);
+
+    useEffect(() => {
+        const comprovante = formData?.comprovantePagamento;
+        if (!comprovante) {
+            setComprovantePreviewUrl(null);
+            return undefined;
+        }
+        if (comprovante.url) {
+            setComprovantePreviewUrl(comprovante.url);
+            return undefined;
+        }
+        if (!comprovante.conteudoBase64) {
+            setComprovantePreviewUrl(null);
+            return undefined;
+        }
+        const url = criarUrlBase64(comprovante.conteudoBase64, comprovante.mimeType);
+        if (!url) {
+            setComprovantePreviewUrl(null);
+            return undefined;
+        }
+        setComprovantePreviewUrl(url);
+        return () => {
+            URL.revokeObjectURL(url);
+        };
+    }, [formData?.comprovantePagamento]);
 
     const handleLogout = async () => {
         setLogoutErro(null);
@@ -303,6 +474,30 @@ export default function AdminDashboard({temaAtual, temas, onTemaChange}: AdminDa
             setFormData((prev) => (prev ? {...prev, [campo]: checked} : prev));
         };
 
+    const atualizarComprovanteCampo =
+        (campo: keyof ComprovantePagamentoDto) =>
+        (event: ChangeEvent<HTMLInputElement>) => {
+            const valor = event.target.value;
+            setFormData((prev) => {
+                if (!prev) return prev;
+                const atual = prev.comprovantePagamento ?? {
+                    nomeArquivo: "",
+                    url: "",
+                    caminhoStorage: "",
+                    enviadoEm: "",
+                    mimeType: "application/octet-stream",
+                };
+                return {
+                    ...prev,
+                    comprovantePagamento: {...atual, [campo]: valor},
+                };
+            });
+        };
+
+    const removerComprovanteAtual = () => {
+        setFormData((prev) => (prev ? {...prev, comprovantePagamento: null} : prev));
+    };
+
     const normalizarObjetoOpcional = <T extends Record<string, unknown>>(objeto: T | null | undefined): T | null => {
         if (!objeto) return null;
         const valores = Object.values(objeto).map((valor) =>
@@ -313,6 +508,33 @@ export default function AdminDashboard({temaAtual, temas, onTemaChange}: AdminDa
             return null;
         }
         return objeto;
+    };
+
+    const normalizarComprovantePagamento = (
+        comprovante: ComprovantePagamentoDto | null | undefined,
+    ): ComprovantePagamentoDto | null => {
+        if (!comprovante) {
+            return null;
+        }
+        const nomeArquivo = comprovante.nomeArquivo?.trim() ?? "";
+        const url = comprovante.url?.trim() ?? "";
+        const caminhoStorage =
+            comprovante.caminhoStorage?.trim() ??
+            (url ? extrairPathDaUrl(url) ?? "" : "");
+        const conteudoBase64 = comprovante.conteudoBase64?.trim() ?? "";
+        const enviadoEm = comprovante.enviadoEm?.trim() ?? "";
+        const mimeType = comprovante.mimeType?.trim() ?? "application/octet-stream";
+        if (!nomeArquivo && !url && !conteudoBase64) {
+            return null;
+        }
+        return {
+            nomeArquivo,
+            url: url || undefined,
+            caminhoStorage: caminhoStorage || undefined,
+            conteudoBase64: conteudoBase64 || undefined,
+            enviadoEm: enviadoEm || undefined,
+            mimeType,
+        };
     };
 
     const handleSalvar = async (event: FormEvent<HTMLFormElement>) => {
@@ -328,6 +550,7 @@ export default function AdminDashboard({temaAtual, temas, onTemaChange}: AdminDa
                       contato: formData.contatoEmergencia.contato?.trim() ?? "",
                   }
                 : {nome: "", parentesco: "", contato: ""};
+            const comprovantePagamento = normalizarComprovantePagamento(formData.comprovantePagamento);
             const payload: InscricaoRegistrada = {
                 ...formData,
                 idade: Number.isFinite(Number(formData.idade)) ? Number(formData.idade) : 0,
@@ -340,6 +563,7 @@ export default function AdminDashboard({temaAtual, temas, onTemaChange}: AdminDa
                         : null,
                 ),
                 contatoEmergencia,
+                comprovantePagamento,
             };
             await atualizarInscricao(payload);
             setInscricoes((prev) =>
@@ -375,7 +599,100 @@ export default function AdminDashboard({temaAtual, temas, onTemaChange}: AdminDa
             return direction === "asc" ? comparacao : -comparacao;
         });
     }, [inscricoes, faixasSelecionadas, ordenacao]);
-    const totalColunas = COLUNAS.length + 2;
+    const idsVisiveis = useMemo(
+        () => inscricoesProcessadas.map((inscricao) => inscricao.id),
+        [inscricoesProcessadas],
+    );
+    const todosVisiveisSelecionados =
+        idsVisiveis.length > 0 && idsVisiveis.every((id) => selecionados.includes(id));
+    const temSelecaoVisivel = idsVisiveis.some((id) => selecionados.includes(id));
+    const temSelecao = selecionados.length > 0;
+    const totalColunas = COLUNAS.length + 3;
+
+    useEffect(() => {
+        if (selectAllRef.current) {
+            selectAllRef.current.indeterminate = !todosVisiveisSelecionados && temSelecaoVisivel;
+        }
+    }, [temSelecaoVisivel, todosVisiveisSelecionados]);
+
+    const handleToggleSelecao = (id: string) => {
+        setSelecionados((prev) =>
+            prev.includes(id) ? prev.filter((item) => item !== id) : [...prev, id],
+        );
+    };
+
+    const handleSelecionarTodosVisiveis = () => {
+        if (idsVisiveis.length === 0) {
+            return;
+        }
+        if (todosVisiveisSelecionados) {
+            setSelecionados((prev) => prev.filter((id) => !idsVisiveis.includes(id)));
+            return;
+        }
+        setSelecionados((prev) => {
+            const conjunto = new Set(prev);
+            idsVisiveis.forEach((id) => conjunto.add(id));
+            return Array.from(conjunto);
+        });
+    };
+
+    const handleExcluirSelecionadas = async () => {
+        if (selecionados.length === 0) {
+            return;
+        }
+        const mensagem =
+            selecionados.length === 1
+                ? "Deseja excluir a inscrição selecionada? Esta ação não pode ser desfeita."
+                : `Deseja excluir ${selecionados.length} inscrições selecionadas? Esta ação não pode ser desfeita.`;
+        if (!window.confirm(mensagem)) {
+            return;
+        }
+        try {
+            setExcluindo(true);
+            setExcluirErro(null);
+            await removerInscricoes(selecionados);
+            setInscricoes((prev) =>
+                prev.filter((inscricao) => !selecionados.includes(inscricao.id)),
+            );
+            setSelecionados([]);
+        } catch (error) {
+            console.error("[AdminDashboard] falha ao excluir inscrições", error);
+            setExcluirErro("Não foi possível excluir as inscrições selecionadas. Tente novamente.");
+        } finally {
+            setExcluindo(false);
+        }
+    };
+
+    const handleExportarCsv = () => {
+        if (inscricoesProcessadas.length === 0) {
+            setExportErro("Não há inscrições para exportar.");
+            return;
+        }
+        try {
+            setExportErro(null);
+            setExportando(true);
+            const conteudo = gerarCsv(inscricoesProcessadas);
+            const blob = new Blob(["\ufeff", conteudo], {type: "text/csv;charset=utf-8;"});
+            const url = URL.createObjectURL(blob);
+            const link = document.createElement("a");
+            link.href = url;
+            const hoje = new Date();
+            const dataFormatada = hoje
+                .toLocaleDateString("pt-BR")
+                .replace(/\//g, "-")
+                .replace(/[^0-9-]/g, "");
+            link.download = `inscricoes-kasa-${dataFormatada}.csv`;
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+            URL.revokeObjectURL(url);
+        } catch (error) {
+            console.error("[AdminDashboard] falha ao exportar inscrições", error);
+            setExportErro("Não foi possível exportar a planilha. Tente novamente.");
+        } finally {
+            setExportando(false);
+        }
+    };
 
     return (
         <div className="min-h-screen bg-background text-foreground px-4 py-8">
@@ -421,35 +738,80 @@ export default function AdminDashboard({temaAtual, temas, onTemaChange}: AdminDa
                 ) : null}
 
                 <section className="bg-card text-card-foreground border rounded-2xl p-0 shadow-sm overflow-hidden">
-                    <div className="flex flex-wrap items-center justify-between gap-4 border-b px-6 py-4 text-sm">
-                        <span className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-                            Filtrar por faixa etária
-                        </span>
-                        <div className="flex flex-wrap gap-2">
-                            {FAIXA_ETARIA_OPCOES.map((opcao) => {
-                                const ativo = faixasSelecionadas.includes(opcao.valor);
-                                return (
-                                    <button
-                                        key={opcao.valor}
-                                        type="button"
-                                        onClick={() => handleToggleFaixa(opcao.valor)}
-                                        className={`rounded-full border px-4 py-1.5 text-xs font-semibold uppercase tracking-wide transition ${
-                                            ativo
-                                                ? "border-primary bg-primary text-primary-foreground shadow-sm hover:bg-primary/90"
-                                                : "bg-accent text-muted-foreground hover:text-foreground hover:bg-accent"
-                                        }`}
-                                    >
-                                        {opcao.rotulo}
-                                    </button>
-                                );
-                            })}
+                    <div className="flex flex-col gap-4 border-b px-6 py-4 text-sm lg:flex-row lg:items-center lg:justify-between">
+                        <div className="flex flex-col gap-2">
+                            <span className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+                                Filtrar por faixa etária
+                            </span>
+                            <div className="flex flex-wrap gap-2">
+                                {FAIXA_ETARIA_OPCOES.map((opcao) => {
+                                    const ativo = faixasSelecionadas.includes(opcao.valor);
+                                    return (
+                                        <button
+                                            key={opcao.valor}
+                                            type="button"
+                                            onClick={() => handleToggleFaixa(opcao.valor)}
+                                            className={`rounded-full border px-4 py-1.5 text-xs font-semibold uppercase tracking-wide transition ${
+                                                ativo
+                                                    ? "border-primary bg-primary text-primary-foreground shadow-sm hover:bg-primary/90"
+                                                    : "bg-accent text-muted-foreground hover:text-foreground hover:bg-accent"
+                                            }`}
+                                        >
+                                            {opcao.rotulo}
+                                        </button>
+                                    );
+                                })}
+                            </div>
+                        </div>
+                        <div className="flex flex-wrap items-center gap-3">
+                            <span className="text-xs text-muted-foreground">
+                                {temSelecao
+                                    ? `${selecionados.length} selecionada(s)`
+                                    : "Selecione inscrições para excluir"}
+                            </span>
+                            <button
+                                type="button"
+                                onClick={handleExcluirSelecionadas}
+                                className="inline-flex items-center justify-center rounded-xl bg-red-600 px-4 py-2 text-xs font-semibold uppercase tracking-wide text-white hover:bg-red-700 disabled:opacity-60 disabled:cursor-not-allowed transition"
+                                disabled={!temSelecao || excluindo}
+                            >
+                                {excluindo ? "Excluindo..." : "Excluir selecionadas"}
+                            </button>
+                            <button
+                                type="button"
+                                onClick={handleExportarCsv}
+                                className="inline-flex items-center justify-center rounded-xl border border-primary/60 px-4 py-2 text-xs font-semibold uppercase tracking-wide text-primary hover:bg-primary/10 disabled:opacity-60 disabled:cursor-not-allowed transition"
+                                disabled={exportando}
+                            >
+                                {exportando ? "Gerando planilha..." : "Exportar planilha"}
+                            </button>
                         </div>
                     </div>
+                    {excluirErro ? (
+                        <div className="border-b border-red-500/30 bg-red-500/10 px-6 py-3 text-sm text-red-500">
+                            {excluirErro}
+                        </div>
+                    ) : null}
+                    {exportErro ? (
+                        <div className="border-b border-amber-500/30 bg-amber-500/10 px-6 py-3 text-sm text-amber-700">
+                            {exportErro}
+                        </div>
+                    ) : null}
 
                     <div className="overflow-x-auto">
                         <table className="min-w-full border-collapse">
                             <thead className="bg-muted/60 text-muted-foreground text-xs uppercase tracking-wide">
                                 <tr>
+                                    <th className="px-4 py-3 text-left">
+                                        <input
+                                            ref={selectAllRef}
+                                            type="checkbox"
+                                            className="size-4 accent-primary"
+                                            onChange={handleSelecionarTodosVisiveis}
+                                            checked={todosVisiveisSelecionados && idsVisiveis.length > 0}
+                                            aria-label="Selecionar todas as inscrições listadas"
+                                        />
+                                    </th>
                                     <th className="px-4 py-3 text-left">#</th>
                                     <th className="px-4 py-3 text-left">Ações</th>
                                     {COLUNAS.map((coluna) => {
@@ -512,6 +874,18 @@ export default function AdminDashboard({temaAtual, temas, onTemaChange}: AdminDa
                                             key={inscricao.id}
                                             className="border-t hover:bg-muted/30"
                                         >
+                                            <td className="px-4 py-3 align-top">
+                                                <input
+                                                    type="checkbox"
+                                                    className="size-4 accent-primary"
+                                                    checked={selecionados.includes(inscricao.id)}
+                                                    onChange={() => handleToggleSelecao(inscricao.id)}
+                                                    disabled={excluindo}
+                                                    aria-label={`Selecionar inscrição ${
+                                                        inscricao.nomeCompleto ?? inscricao.id
+                                                    }`}
+                                                />
+                                            </td>
                                             <td className="px-4 py-3 align-top text-xs text-muted-foreground">
                                                 {index + 1}
                                             </td>
@@ -524,11 +898,25 @@ export default function AdminDashboard({temaAtual, temas, onTemaChange}: AdminDa
                                                     Editar
                                                 </button>
                                             </td>
-                                            {COLUNAS.map((coluna) => (
-                                                <td key={coluna.key} className="px-4 py-3 align-top whitespace-pre-wrap">
-                                                    {coluna.accessor(inscricao)}
-                                                </td>
-                                            ))}
+                                            {COLUNAS.map((coluna) => {
+                                                const valor = coluna.accessor(inscricao);
+                                                const isComprovante = coluna.key === "comprovantePagamento";
+                                                return (
+                                                    <td
+                                                        key={coluna.key}
+                                                        className="px-4 py-3 align-top whitespace-pre-wrap"
+                                                    >
+                                                        {isComprovante ? (
+                                                            <ComprovanteCell
+                                                                comprovante={inscricao.comprovantePagamento}
+                                                                fallback={valor}
+                                                            />
+                                                        ) : (
+                                                            valor
+                                                        )}
+                                                    </td>
+                                                );
+                                            })}
                                         </tr>
                                     ))
                                 )}
@@ -747,14 +1135,51 @@ export default function AdminDashboard({temaAtual, temas, onTemaChange}: AdminDa
                                                 ))}
                                             </select>
                                         </label>
-                                        <label className="flex flex-col gap-1 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-                                            Comprovante de pagamento
+                                        <div className="flex flex-col gap-2 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+                                            <span>Comprovante de pagamento</span>
+                                            {comprovantePreviewUrl ? (
+                                                <a
+                                                    href={comprovantePreviewUrl}
+                                                    target="_blank"
+                                                    rel="noopener noreferrer"
+                                                    className="text-primary underline text-[11px]"
+                                                >
+                                                    Abrir comprovante atual
+                                                </a>
+                                            ) : (
+                                                <span className="text-[11px] text-muted-foreground">
+                                                    Nenhum comprovante enviado.
+                                                </span>
+                                            )}
                                             <input
                                                 className="rounded-lg border bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary/40"
-                                                value={formData.comprovantePagamento ?? ""}
-                                                onChange={atualizarCampoEvento("comprovantePagamento")}
+                                                value={formData.comprovantePagamento?.nomeArquivo ?? ""}
+                                                onChange={atualizarComprovanteCampo("nomeArquivo")}
+                                                placeholder="Nome original do arquivo"
                                             />
-                                        </label>
+                                            <input
+                                                className="rounded-lg border bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary/40"
+                                                value={formData.comprovantePagamento?.url ?? ""}
+                                                onChange={atualizarComprovanteCampo("url")}
+                                                placeholder="URL público do comprovante"
+                                            />
+                                            <div className="flex flex-wrap gap-2 text-[11px] normal-case">
+                            <span className="text-muted-foreground">
+                                Caminho: {formData.comprovantePagamento?.caminhoStorage || "-"}
+                            </span>
+                                                <span className="text-muted-foreground">
+                                Enviado em: {formData.comprovantePagamento?.enviadoEm || "-"}
+                            </span>
+                                            </div>
+                                            <button
+                                                type="button"
+                                                onClick={removerComprovanteAtual}
+                                                className="self-start rounded-full border px-3 py-1 text-[11px] font-semibold uppercase tracking-wide text-red-500 hover:bg-red-50"
+                                                disabled={!formData.comprovantePagamento}
+                                            >
+                                                Remover comprovante
+                                            </button>
+                                        </div>
                                         <label className="flex flex-col gap-1 text-xs font-semibold uppercase tracking-wide text-muted-foreground md:col-span-2">
                                             Observações
                                             <textarea

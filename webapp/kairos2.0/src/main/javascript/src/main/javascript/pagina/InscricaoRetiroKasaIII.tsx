@@ -1,10 +1,10 @@
-import {useMemo, useState} from "react";
+import {useEffect, useMemo, useState} from "react";
 import type {ChangeEvent, FormEvent} from "react";
 import Section from "@componente/Section";
 import Card from "@componente/Card";
 import {ArrowLeft, CalendarClock, ClipboardCheck, HandHeart, MapPin, Shield} from "lucide-react";
-import {salvarInscricao} from "@dominio/servicos/inscricaoFirebaseServico";
-import type {InscricaoRequestDto} from "@dominio/dto/inscricaoDto";
+import {observarTotalInscricoes, salvarInscricao} from "@dominio/servicos/inscricaoFirebaseServico";
+import type {ComprovantePagamentoDto, InscricaoRequestDto} from "@dominio/dto/inscricaoDto";
 
 type InscricaoRetiroKasaIIIProps = {
     onVoltar: () => void;
@@ -82,6 +82,31 @@ const PAYMENT_OPTIONS: Array<{value: FormaPagamento; label: string}> = [
     {value: "DINHEIRO", label: "Dinheiro"},
 ];
 
+type LoteConfig = {
+    nome: string;
+    capacidade: number;
+    valor: number;
+    limiteAcumulado: number;
+};
+
+const LOTE_CONFIGS: LoteConfig[] = [
+    {nome: "1º lote", capacidade: 20, valor: 200, limiteAcumulado: 20},
+    {nome: "2º lote", capacidade: 30, valor: 230, limiteAcumulado: 50},
+    {
+        nome: "3º lote",
+        capacidade: 30,
+        valor: 250,
+        limiteAcumulado: Number.POSITIVE_INFINITY,
+    },
+];
+
+const CURRENCY_FORMATTER = new Intl.NumberFormat("pt-BR", {
+    style: "currency",
+    currency: "BRL",
+});
+
+const formatarMoeda = (valor: number): string => CURRENCY_FORMATTER.format(valor);
+
 const criarFormularioInicial = (): InscricaoFormData => ({
     nomeCompleto: "",
     dataNascimento: "",
@@ -120,25 +145,37 @@ const sanitizePhone = (value: string): string => value.replace(/\D/g, "");
 
 const toE164Phone = (value: string): string | null => {
     const digits = sanitizePhone(value);
-    if (digits.length === 13 && digits.startsWith("55") && digits[4] === "9") {
-        return `+${digits}`;
+    if (digits.length < 10) {
+        return null;
     }
-    if (digits.length === 11 && digits[2] === "9") {
-        return `+55${digits}`;
+    let localDigits = digits;
+    if (digits.startsWith("55") && (digits.length === 12 || digits.length === 13)) {
+        localDigits = digits.slice(2);
+    }
+    if (localDigits.length === 11 || localDigits.length === 10) {
+        return `+55${localDigits}`;
     }
     return null;
 };
 
 const formatPhone = (value: string): string => {
     const digits = sanitizePhone(value);
-    const localDigits =
-        digits.length === 13 && digits.startsWith("55") ? digits.slice(2) : digits;
+    let localDigits = digits;
+    if (digits.startsWith("55") && (digits.length === 12 || digits.length === 13)) {
+        localDigits = digits.slice(2);
+    }
     if (localDigits.length === 11) {
         const ddd = localDigits.slice(0, 2);
         const primeira = localDigits.slice(2, 3);
         const meio = localDigits.slice(3, 7);
         const fim = localDigits.slice(7);
         return `(${ddd}) ${primeira}${meio}-${fim}`;
+    }
+    if (localDigits.length === 10) {
+        const ddd = localDigits.slice(0, 2);
+        const meio = localDigits.slice(2, 6);
+        const fim = localDigits.slice(6);
+        return `(${ddd}) ${meio}-${fim}`;
     }
     return value.trim();
 };
@@ -147,7 +184,10 @@ const isValidPhone = (value: string): boolean => toE164Phone(value) !== null;
 
 type SubmissionStatus = "idle" | "loading" | "success" | "error";
 
-const mapFormToDto = (dados: InscricaoFormData): InscricaoRequestDto => {
+const mapFormToDto = (
+    dados: InscricaoFormData,
+    comprovante?: ComprovantePagamentoDto | null,
+): InscricaoRequestDto => {
     const donsSelecionados = dados.dons
         .map((valor) => {
             if (valor === "OUTROS") {
@@ -198,7 +238,7 @@ const mapFormToDto = (dados: InscricaoFormData): InscricaoRequestDto => {
         comunidadeOrigem: dados.comunidadeOrigem.trim(),
         donsHabilidades,
         formaPagamento: dados.formaPagamento as FormaPagamento,
-        comprovantePagamento: dados.comprovantePagamento?.name ?? null,
+        comprovantePagamento: comprovante ?? null,
         consentimentoImagem: dados.consentimentoImagem,
         consentimentoDados: dados.consentimentoDados,
         observacoes: dados.observacoes.trim() ? dados.observacoes.trim() : null,
@@ -212,6 +252,9 @@ export default function InscricaoRetiroKasaIII({onVoltar}: InscricaoRetiroKasaII
     const [submittedName, setSubmittedName] = useState("");
     const [submittedContato, setSubmittedContato] = useState("");
     const [submissionId, setSubmissionId] = useState<string | null>(null);
+    const [totalInscricoes, setTotalInscricoes] = useState<number | null>(null);
+    const [carregandoLotes, setCarregandoLotes] = useState(true);
+    const [loteErro, setLoteErro] = useState<string | null>(null);
 
     const limparFeedback = () => {
         if (status === "success" || status === "error") {
@@ -263,6 +306,25 @@ export default function InscricaoRetiroKasaIII({onVoltar}: InscricaoRetiroKasaII
         updateField("comprovantePagamento", file);
     };
 
+    useEffect(() => {
+        setCarregandoLotes(true);
+        const cancelarObservacao = observarTotalInscricoes(
+            (total) => {
+                setTotalInscricoes(total);
+                setLoteErro(null);
+                setCarregandoLotes(false);
+            },
+            (error) => {
+                console.error("[InscricaoRetiroKasaIII] falha ao observar inscrições:", error);
+                setLoteErro("Não foi possível atualizar o total de inscrições em tempo real.");
+                setCarregandoLotes(false);
+            },
+        );
+        return () => {
+            cancelarObservacao();
+        };
+    }, []);
+
     const feedback = useMemo(() => {
         if (status === "success") {
             const primeiroNome = submittedName.trim().split(" ")[0] || "participante";
@@ -276,6 +338,16 @@ export default function InscricaoRetiroKasaIII({onVoltar}: InscricaoRetiroKasaII
     }, [status, submissionId, submittedContato, submittedName]);
 
     const isMenor = form.menorIdade === "SIM";
+
+    const loteAtual = useMemo(() => {
+        const total = totalInscricoes ?? 0;
+        const indiceEncontrado = LOTE_CONFIGS.findIndex(
+            (config) => total < config.limiteAcumulado,
+        );
+        const indiceValido = indiceEncontrado === -1 ? LOTE_CONFIGS.length - 1 : indiceEncontrado;
+        return LOTE_CONFIGS[indiceValido];
+    }, [totalInscricoes]);
+
 
     const isValid =
         form.nomeCompleto.trim() !== "" &&
@@ -295,7 +367,33 @@ export default function InscricaoRetiroKasaIII({onVoltar}: InscricaoRetiroKasaII
         (!isMenor ||
             (form.responsavelNome.trim() !== "" && form.responsavelContato.trim() !== ""));
 
-    const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
+const arquivoParaBase64 = (arquivo: File): Promise<string> =>
+    new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = () => {
+            const resultado = reader.result;
+            if (typeof resultado !== "string") {
+                reject(new Error("Não foi possível processar o arquivo selecionado."));
+                return;
+            }
+            const base64 = resultado.includes(",") ? resultado.split(",")[1] : resultado;
+            resolve(base64);
+        };
+        reader.onerror = () => reject(new Error("Falha ao ler o arquivo selecionado."));
+        reader.readAsDataURL(arquivo);
+    });
+
+const criarComprovanteBase64 = async (arquivo: File): Promise<ComprovantePagamentoDto> => {
+    const conteudoBase64 = (await arquivoParaBase64(arquivo)).replace(/[\r\n\s]/g, "");
+    return {
+        nomeArquivo: arquivo.name,
+        mimeType: arquivo.type || "application/octet-stream",
+        conteudoBase64,
+        enviadoEm: new Date().toISOString(),
+    };
+};
+
+const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
         event.preventDefault();
         if (!isValid) {
             return;
@@ -303,7 +401,11 @@ export default function InscricaoRetiroKasaIII({onVoltar}: InscricaoRetiroKasaII
         try {
             setStatus("loading");
             setErrorMessage(null);
-            const payload = mapFormToDto(form);
+            let comprovanteDto: ComprovantePagamentoDto | null = null;
+            if (form.comprovantePagamento && form.formaPagamento === "PIX") {
+                comprovanteDto = await criarComprovanteBase64(form.comprovantePagamento);
+            }
+            const payload = mapFormToDto(form, comprovanteDto);
             const telefoneFormatado = formatPhone(form.contato);
             const identificador = await salvarInscricao(payload);
             setSubmittedName(form.nomeCompleto);
@@ -351,12 +453,25 @@ export default function InscricaoRetiroKasaIII({onVoltar}: InscricaoRetiroKasaII
                             <Shield className="size-5"/> Vagas limitadas, confirmação mediante contato da equipe.
                         </div>
                         <div className="flex items-center gap-3 text-sm text-muted-foreground">
-                            <HandHeart className="size-5"/> Contribuição: R$ 180,00 (pode ser parcelado).
+                            <HandHeart className="size-5"/>
+                            <div>
+                                <div>
+                                    Contribuição: {loteAtual.nome} — {formatarMoeda(loteAtual.valor)}
+                                </div>
+                                {carregandoLotes ? (
+                                    <div className="text-xs text-muted-foreground">
+                                        Calculando total de inscrições...
+                                    </div>
+                                ) : null}
+                                {loteErro ? (
+                                    <div className="text-xs text-red-500">{loteErro}</div>
+                                ) : null}
+                            </div>
                         </div>
                         <div className="rounded-xl border border-dashed p-4 text-sm text-muted-foreground flex gap-3 items-start">
                             <ClipboardCheck className="size-5 mt-0.5"/>
                             <p>
-                                A inscrição é confirmada após validação dos dados, envio do comprovante e aceite dos termos
+                                A inscrição é confirmada após validação dos dados, envio do comprovante(pix) e aceite dos termos
                                 de privacidade. Entraremos em contato para orientações adicionais e acompanhamento
                                 espiritual.
                             </p>
@@ -368,8 +483,9 @@ export default function InscricaoRetiroKasaIII({onVoltar}: InscricaoRetiroKasaII
                             <h3 className="text-lg font-semibold">Dados do participante</h3>
                             <p className="mt-2 text-sm text-muted-foreground">
                                 Utilize informações atualizadas para contato. Em caso de dúvidas, procure a equipe do
-                                Movimento Kairós.
-                            </p>
+                                Movimento Kairós.</p>
+                                <p>movimentokairos23@gmail.com</p>
+                                <p>+55 (91) 98615-3379</p>
                         </div>
                         <form className="grid gap-5" onSubmit={handleSubmit}>
                             <div className="grid gap-3 md:grid-cols-2">
@@ -704,6 +820,9 @@ export default function InscricaoRetiroKasaIII({onVoltar}: InscricaoRetiroKasaII
                                             </label>
                                         ))}
                                     </div>
+                                    <p className="text-xs text-muted-foreground">
+                                        Cartão de crédito e dinheiro são pagos presencialmente; apenas Pix exige envio do comprovante.
+                                    </p>
                                 </div>
 
                                 <div className="grid gap-2">
@@ -711,8 +830,11 @@ export default function InscricaoRetiroKasaIII({onVoltar}: InscricaoRetiroKasaII
                                         className="text-sm font-medium text-muted-foreground"
                                         htmlFor="inscricao-comprovante"
                                     >
-                                        Comprovante de pagamento (anexe caso já possua)
+                                        Comprovante de pagamento
                                     </label>
+                                    <p className="text-xs text-muted-foreground">
+                                        Obrigatório somente para pagamentos via Pix.
+                                    </p>
                                     <input
                                         id="inscricao-comprovante"
                                         type="file"

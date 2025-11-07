@@ -11,6 +11,15 @@ export type ContatoEmergenciaDto = {
     contato: string;
 };
 
+export type ComprovantePagamentoDto = {
+    nomeArquivo: string;
+    mimeType: string;
+    url?: string | null;
+    conteudoBase64?: string | null;
+    caminhoStorage?: string | null;
+    enviadoEm?: string | null;
+};
+
 export type InscricaoRequestDto = {
     nomeCompleto: string;
     dataNascimento: string;
@@ -27,7 +36,7 @@ export type InscricaoRequestDto = {
     comunidadeOrigem: string;
     donsHabilidades: string;
     formaPagamento: FormaPagamento;
-    comprovantePagamento?: string | null;
+    comprovantePagamento?: ComprovantePagamentoDto | null;
     consentimentoImagem: boolean;
     consentimentoDados: boolean;
     observacoes?: string | null;
