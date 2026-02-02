@@ -140,6 +140,14 @@ const FIELD_BASE_CLASS =
 const TEXTAREA_CLASS = `${FIELD_BASE_CLASS} min-h-[96px]`;
 
 const PHONE_INPUT_PATTERN = /^(\+?55\s?)?\(?\d{2}\)?\s?(9\s?)?\d{4}-?\d{4}$/;
+const MAX_COMPROVANTE_SIZE_BYTES = 4 * 1024 * 1024;
+const ALLOWED_COMPROVANTE_TYPES = new Set([
+    "image/jpeg",
+    "image/png",
+    "application/pdf",
+    "image/heic",
+    "image/heif",
+]);
 
 const sanitizePhone = (value: string): string => value.replace(/\D/g, "");
 
@@ -303,6 +311,22 @@ export default function InscricaoRetiroKasaIII({onVoltar}: InscricaoRetiroKasaII
 
     const handleFileChange = (event: ChangeEvent<HTMLInputElement>) => {
         const file = event.target.files?.[0] ?? null;
+        if (!file) {
+            updateField("comprovantePagamento", null);
+            return;
+        }
+        if (file.size > MAX_COMPROVANTE_SIZE_BYTES) {
+            setStatus("error");
+            setErrorMessage("Comprovante muito grande. Envie arquivo de até 4MB.");
+            updateField("comprovantePagamento", null);
+            return;
+        }
+        if (file.type && !ALLOWED_COMPROVANTE_TYPES.has(file.type)) {
+            setStatus("error");
+            setErrorMessage("Formato inválido. Use JPG, PNG, PDF ou HEIC.");
+            updateField("comprovantePagamento", null);
+            return;
+        }
         updateField("comprovantePagamento", file);
     };
 
@@ -361,6 +385,7 @@ export default function InscricaoRetiroKasaIII({onVoltar}: InscricaoRetiroKasaII
         form.contatoEmergenciaParentesco.trim() !== "" &&
         form.contatoEmergenciaContato.trim() !== "" &&
         form.formaPagamento !== "" &&
+        (form.formaPagamento !== "PIX" || form.comprovantePagamento !== null) &&
         form.consentimentoDados &&
         form.consentimentoImagem &&
         (!form.dons.includes("OUTROS") || form.outrosDons.trim().length > 0) &&
@@ -396,6 +421,10 @@ const criarComprovanteBase64 = async (arquivo: File): Promise<ComprovantePagamen
 const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
         event.preventDefault();
         if (!isValid) {
+            if (form.formaPagamento === "PIX" && !form.comprovantePagamento) {
+                setStatus("error");
+                setErrorMessage("Para pagamento via Pix, o comprovante é obrigatório.");
+            }
             return;
         }
         try {
@@ -415,7 +444,11 @@ const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
             setForm(criarFormularioInicial());
         } catch (error) {
             console.error("[InscricaoRetiroKasaIII] erro ao salvar inscrição", error);
-            setErrorMessage("Não foi possível enviar sua inscrição. Tente novamente em instantes.");
+            const mensagem =
+                error instanceof Error && error.message
+                    ? `Não foi possível enviar sua inscrição: ${error.message}`
+                    : "Não foi possível enviar sua inscrição. Tente novamente em instantes.";
+            setErrorMessage(mensagem);
             setStatus("error");
         }
     };
