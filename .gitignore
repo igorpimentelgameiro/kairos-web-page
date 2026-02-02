@@ -1,0 +1,4 @@
+# Frontend artifacts (kairos2.0 moved to repo root)
+kairos2.0/src/main/javascript/node_modules/
+kairos2.0/src/main/javascript/dist/
+kairos2.0/src/main/javascript/.env
