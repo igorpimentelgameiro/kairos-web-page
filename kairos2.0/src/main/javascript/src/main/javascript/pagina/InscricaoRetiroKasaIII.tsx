@@ -2,7 +2,7 @@ import {useEffect, useMemo, useState} from "react";
 import type {ChangeEvent, FormEvent} from "react";
 import Section from "@componente/Section";
 import Card from "@componente/Card";
-import {ArrowLeft, CalendarClock, ClipboardCheck, HandHeart, MapPin, Shield} from "lucide-react";
+import {ArrowLeft, CalendarClock, Check, ClipboardCheck, Copy, HandHeart, KeyRound, MapPin, Shield, XCircle} from "lucide-react";
 import {observarTotalInscricoes, salvarInscricao} from "@dominio/servicos/inscricaoFirebaseServico";
 import type {ComprovantePagamentoDto, InscricaoRequestDto} from "@dominio/dto/inscricaoDto";
 
@@ -54,6 +54,39 @@ type InscricaoFormData = {
 
 const CONSENTIMENTO_TEXT =
     "Ao preencher e enviar este formulário, você consente com o tratamento dos seus dados pessoais e com o uso de suas imagens, sons e vídeos para fins relacionados à inscrição, organização e divulgação do evento, conforme a LGPD (Lei nº 13.709/2018). Você pode revogar esse consentimento a qualquer momento pelo e-mail movimentokairos23@gmail.com ou WhatsApp (91) 98615-3379.";
+
+const PIX_KEY = "movimentokairos23@gmail.com";
+
+const COPY_STATES = {
+    idle: "Copiar chave Pix",
+    copied: "Chave copiada!",
+    error: "Falha ao copiar. Tente novamente.",
+} as const;
+
+type CopyState = keyof typeof COPY_STATES;
+
+const copyToClipboard = async (text: string) => {
+    if (typeof navigator !== "undefined" && navigator.clipboard?.writeText) {
+        await navigator.clipboard.writeText(text);
+        return;
+    }
+
+    // Fallback para navegadores que não suportam Clipboard API
+    const textarea = document.createElement("textarea");
+    textarea.value = text;
+    textarea.style.position = "fixed";
+    textarea.style.top = "-1000px";
+    textarea.style.left = "-1000px";
+    document.body.appendChild(textarea);
+    textarea.focus();
+    textarea.select();
+
+    const successful = document.execCommand("copy");
+    document.body.removeChild(textarea);
+    if (!successful) {
+        throw new Error("Clipboard fallback failed");
+    }
+};
 
 const TALENTO_OPTIONS: Array<{value: TalentoValue; label: string}> = [
     {value: "CANTAR", label: "Cantar"},
@@ -263,6 +296,7 @@ export default function InscricaoRetiroKasaIII({onVoltar}: InscricaoRetiroKasaII
     const [totalInscricoes, setTotalInscricoes] = useState<number | null>(null);
     const [carregandoLotes, setCarregandoLotes] = useState(true);
     const [loteErro, setLoteErro] = useState<string | null>(null);
+    const [pixCopyState, setPixCopyState] = useState<CopyState>("idle");
 
     const limparFeedback = () => {
         if (status === "success" || status === "error") {
@@ -340,7 +374,6 @@ export default function InscricaoRetiroKasaIII({onVoltar}: InscricaoRetiroKasaII
             },
             (error) => {
                 console.error("[InscricaoRetiroKasaIII] falha ao observar inscrições:", error);
-                setLoteErro("Não foi possível atualizar o total de inscrições em tempo real.");
                 setCarregandoLotes(false);
             },
         );
@@ -348,6 +381,22 @@ export default function InscricaoRetiroKasaIII({onVoltar}: InscricaoRetiroKasaII
             cancelarObservacao();
         };
     }, []);
+
+    useEffect(() => {
+        if (pixCopyState === "idle") return undefined;
+        const timeout = setTimeout(() => setPixCopyState("idle"), 2000);
+        return () => clearTimeout(timeout);
+    }, [pixCopyState]);
+
+    const handleCopyPix = async () => {
+        try {
+            await copyToClipboard(PIX_KEY);
+            setPixCopyState("copied");
+        } catch (error) {
+            console.error("[InscricaoRetiroKasaIII] copy pix key failed", error);
+            setPixCopyState("error");
+        }
+    };
 
     const feedback = useMemo(() => {
         if (status === "success") {
@@ -499,6 +548,30 @@ const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
                                 {loteErro ? (
                                     <div className="text-xs text-red-500">{loteErro}</div>
                                 ) : null}
+                            </div>
+                        </div>
+                        <div className="flex items-center gap-3 text-sm text-muted-foreground">
+                            <KeyRound className="size-5"/>
+                            <div className="flex flex-wrap items-center gap-2">
+                                <span className="font-medium text-foreground">Chave Pix:</span>
+                                <span className="font-mono text-foreground select-all">{PIX_KEY}</span>
+                                <button
+                                    type="button"
+                                    onClick={handleCopyPix}
+                                    className={`inline-flex items-center gap-2 rounded-lg border px-3 py-1 text-xs font-semibold transition ${
+                                        pixCopyState === "copied"
+                                            ? "bg-emerald-500 text-white border-emerald-600"
+                                            : pixCopyState === "error"
+                                                ? "bg-red-500 text-white border-red-600"
+                                                : "hover:bg-accent hover:text-accent-foreground"
+                                    }`}
+                                    aria-live="polite"
+                                >
+                                    {pixCopyState === "copied" ? <Check className="size-3"/> : null}
+                                    {pixCopyState === "error" ? <XCircle className="size-3"/> : null}
+                                    {pixCopyState === "idle" ? <Copy className="size-3"/> : null}
+                                    {COPY_STATES[pixCopyState]}
+                                </button>
                             </div>
                         </div>
                         <div className="rounded-xl border border-dashed p-4 text-sm text-muted-foreground flex gap-3 items-start">
