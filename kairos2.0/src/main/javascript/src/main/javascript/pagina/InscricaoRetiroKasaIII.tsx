@@ -2,8 +2,8 @@ import {useEffect, useMemo, useState} from "react";
 import type {ChangeEvent, FormEvent} from "react";
 import Section from "@componente/Section";
 import Card from "@componente/Card";
-import {ArrowLeft, CalendarClock, Check, ClipboardCheck, Copy, HandHeart, KeyRound, MapPin, Shield, XCircle} from "lucide-react";
-import {observarTotalInscricoes, salvarInscricao} from "@dominio/servicos/inscricaoFirebaseServico";
+import {ArrowLeft, CalendarClock, Check, ClipboardCheck, Copy, KeyRound, MapPin, Shield, XCircle} from "lucide-react";
+import {salvarInscricao} from "@dominio/servicos/inscricaoFirebaseServico";
 import type {ComprovantePagamentoDto, InscricaoRequestDto} from "@dominio/dto/inscricaoDto";
 
 type InscricaoRetiroKasaIIIProps = {
@@ -114,31 +114,6 @@ const PAYMENT_OPTIONS: Array<{value: FormaPagamento; label: string}> = [
     {value: "CREDITO", label: "Cartão de crédito"},
     {value: "DINHEIRO", label: "Dinheiro"},
 ];
-
-type LoteConfig = {
-    nome: string;
-    capacidade: number;
-    valor: number;
-    limiteAcumulado: number;
-};
-
-const LOTE_CONFIGS: LoteConfig[] = [
-    {nome: "1º lote", capacidade: 20, valor: 200, limiteAcumulado: 20},
-    {nome: "2º lote", capacidade: 30, valor: 230, limiteAcumulado: 50},
-    {
-        nome: "3º lote",
-        capacidade: 30,
-        valor: 250,
-        limiteAcumulado: Number.POSITIVE_INFINITY,
-    },
-];
-
-const CURRENCY_FORMATTER = new Intl.NumberFormat("pt-BR", {
-    style: "currency",
-    currency: "BRL",
-});
-
-const formatarMoeda = (valor: number): string => CURRENCY_FORMATTER.format(valor);
 
 const criarFormularioInicial = (): InscricaoFormData => ({
     nomeCompleto: "",
@@ -293,9 +268,6 @@ export default function InscricaoRetiroKasaIII({onVoltar}: InscricaoRetiroKasaII
     const [submittedName, setSubmittedName] = useState("");
     const [submittedContato, setSubmittedContato] = useState("");
     const [submissionId, setSubmissionId] = useState<string | null>(null);
-    const [totalInscricoes, setTotalInscricoes] = useState<number | null>(null);
-    const [carregandoLotes, setCarregandoLotes] = useState(true);
-    const [loteErro, setLoteErro] = useState<string | null>(null);
     const [pixCopyState, setPixCopyState] = useState<CopyState>("idle");
 
     const limparFeedback = () => {
@@ -365,24 +337,6 @@ export default function InscricaoRetiroKasaIII({onVoltar}: InscricaoRetiroKasaII
     };
 
     useEffect(() => {
-        setCarregandoLotes(true);
-        const cancelarObservacao = observarTotalInscricoes(
-            (total) => {
-                setTotalInscricoes(total);
-                setLoteErro(null);
-                setCarregandoLotes(false);
-            },
-            (error) => {
-                console.error("[InscricaoRetiroKasaIII] falha ao observar inscrições:", error);
-                setCarregandoLotes(false);
-            },
-        );
-        return () => {
-            cancelarObservacao();
-        };
-    }, []);
-
-    useEffect(() => {
         if (pixCopyState === "idle") return undefined;
         const timeout = setTimeout(() => setPixCopyState("idle"), 2000);
         return () => clearTimeout(timeout);
@@ -411,16 +365,6 @@ export default function InscricaoRetiroKasaIII({onVoltar}: InscricaoRetiroKasaII
     }, [status, submissionId, submittedContato, submittedName]);
 
     const isMenor = form.menorIdade === "SIM";
-
-    const loteAtual = useMemo(() => {
-        const total = totalInscricoes ?? 0;
-        const indiceEncontrado = LOTE_CONFIGS.findIndex(
-            (config) => total < config.limiteAcumulado,
-        );
-        const indiceValido = indiceEncontrado === -1 ? LOTE_CONFIGS.length - 1 : indiceEncontrado;
-        return LOTE_CONFIGS[indiceValido];
-    }, [totalInscricoes]);
-
 
     const isValid =
         form.nomeCompleto.trim() !== "" &&
@@ -533,22 +477,6 @@ const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
                         </div>
                         <div className="flex items-center gap-3 text-sm text-muted-foreground">
                             <Shield className="size-5"/> Vagas limitadas, confirmação mediante contato da equipe.
-                        </div>
-                        <div className="flex items-center gap-3 text-sm text-muted-foreground">
-                            <HandHeart className="size-5"/>
-                            <div>
-                                <div>
-                                    Contribuição: {loteAtual.nome} — {formatarMoeda(loteAtual.valor)}
-                                </div>
-                                {carregandoLotes ? (
-                                    <div className="text-xs text-muted-foreground">
-                                        Calculando total de inscrições...
-                                    </div>
-                                ) : null}
-                                {loteErro ? (
-                                    <div className="text-xs text-red-500">{loteErro}</div>
-                                ) : null}
-                            </div>
                         </div>
                         <div className="flex items-center gap-3 text-sm text-muted-foreground">
                             <KeyRound className="size-5"/>
