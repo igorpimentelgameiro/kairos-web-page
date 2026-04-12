@@ -12,11 +12,11 @@ export default defineConfig({
     },
     resolve: {
         alias: {
-            "@app": "/src/main/javascript/app",
-            "@componente": "/src/main/javascript/componente",
-            "@dominio": "/src/main/javascript/dominio",
-            "@pagina": "/src/main/javascript/pagina",
-            "@assets": "/src/main/javascript/assets",
+            "@app": "/src/app",
+            "@componente": "/src/componente",
+            "@dominio": "/src/dominio",
+            "@pagina": "/src/pagina",
+            "@assets": "/src/assets",
         },
     },
 });

@@ -118,7 +118,7 @@ mar
 
 ### 🎯 Padrões Gerais
 
-- Código em `kairos2.0/src/main/javascript`.
+- Código em `frontend`.
 - Padrões de estilo:
     - Airbnb Style Guide.
     - ESLint + Prettier configurados.
@@ -137,7 +137,7 @@ mar
 
 ### 🧠 Serviços HTTP
 
-- Todos os serviços ficam em `src/main/javascript/dominio/servicos/`.
+- Todos os serviços ficam em `frontend/src/dominio/servicos/`.
 - Devem usar um módulo central `fetcher.ts` para requisições.
 - Endpoints REST devem espelhar os controllers do backend.
 
@@ -192,7 +192,7 @@ jpa_repositories_nao_acessados_fora_da_infra
 
 🚀 Execução
 Frontend
-cd kairos2.0/src/main/javascript
+cd frontend
 npm install
 npm run dev
 → http://localhost:5173

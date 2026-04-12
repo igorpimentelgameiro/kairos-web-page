@@ -4,6 +4,25 @@ Bem-vindo ao repositório do site do **Movimento Kairós**, um grupo solidário 
 
 Este projeto visa divulgar nosso carisma, missão e ações através de uma página institucional acessível e leve.
 
+## Estrutura Atual
+
+- `frontend/` → aplicação React + TypeScript + Vite
+- `dist/` e `assets/` na raiz → artefatos publicados para GitHub Pages
+
+## Frontend
+
+Os comandos do frontend são executados a partir da raiz do repositório via npm workspace:
+
+```bash
+npm install
+npm run dev
+npm run build
+npm run lint
+npm run deploy:prepare
+```
+
+`npm run deploy:prepare` gera o build em `frontend/dist`, sincroniza `dist/` e atualiza `index.html`, `assets/` e `vite.svg` publicados na raiz.
+
 ---
 
 ## ✨ Sobre o Movimento
