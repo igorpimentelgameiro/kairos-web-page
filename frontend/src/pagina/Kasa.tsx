@@ -8,6 +8,25 @@ type KasaProps = {
 };
 
 export default function Kasa({onParticipar}: KasaProps) {
+    const edicoes = [
+        {
+            nome: "Kasa III",
+            quando: "20–22 Mar 2026",
+            onde: "Belém/PA",
+            status: "Inscrições Encerradas",
+            botao: "Encerrado",
+            desabilitado: true,
+        },
+        {
+            nome: "Kasa IV",
+            quando: "Em definição",
+            onde: "Belém/PA",
+            status: "Em Breve",
+            botao: "Em Breve",
+            desabilitado: true,
+        },
+    ];
+
     return (
         <>
             <Section title="Retiro KASA" subtitle="Um fim de semana de encontro, cura e renovação da fé.">
@@ -46,35 +65,37 @@ export default function Kasa({onParticipar}: KasaProps) {
             </Section>
 
             <Section title="Próximas datas" subtitle="Participe da próxima edição do KASA.">
-                <div className="grid md:grid-cols-3 gap-4">
-                    {(() => {
-                        const proximaEdicao = {
-                            quando: "20–22 Mar 2026",
-                            onde: "Belém/PA",
-                            status: "Inscrições Abertas",
-                        };
-                        return (
-                            <Card className="p-5">
-                                <div className="flex items-start justify-between">
-                                    <div>
-                                        <div className="text-lg font-semibold flex items-center gap-2">
-                                            <CalendarClock className="size-5"/> {proximaEdicao.quando}
-                                        </div>
-                                        <div className="text-muted-foreground flex items-center gap-2">
-                                            <MapPin className="size-4"/> {proximaEdicao.onde}
-                                        </div>
+                <div className="grid md:grid-cols-2 gap-4">
+                    {edicoes.map((edicao) => (
+                        <Card key={edicao.nome} className="p-5">
+                            <div className="flex items-start justify-between gap-3">
+                                <div className="space-y-2">
+                                    <div className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+                                        {edicao.nome}
                                     </div>
-                                    <Pill>{proximaEdicao.status}</Pill>
+                                    <div className="text-lg font-semibold flex items-center gap-2">
+                                        <CalendarClock className="size-5"/> {edicao.quando}
+                                    </div>
+                                    <div className="text-muted-foreground flex items-center gap-2">
+                                        <MapPin className="size-4"/> {edicao.onde}
+                                    </div>
                                 </div>
-                                <button
-                                    type="button"
-                                    onClick={onParticipar}
-                                    className="mt-4 w-full px-4 py-2 rounded-xl bg-primary text-primary-foreground font-semibold">
-                                    Quero participar
-                                </button>
-                            </Card>
-                        );
-                    })()}
+                                <Pill>{edicao.status}</Pill>
+                            </div>
+                            <button
+                                type="button"
+                                onClick={() => {
+                                    if (!edicao.desabilitado) {
+                                        onParticipar();
+                                    }
+                                }}
+                                disabled={edicao.desabilitado}
+                                className="mt-4 w-full px-4 py-2 rounded-xl border font-semibold disabled:cursor-not-allowed disabled:opacity-60 disabled:bg-accent disabled:text-muted-foreground disabled:border"
+                            >
+                                {edicao.botao}
+                            </button>
+                        </Card>
+                    ))}
                 </div>
             </Section>
         </>

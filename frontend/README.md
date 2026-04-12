@@ -37,13 +37,15 @@ npm run lint
 Copie `.env.example` para `.env` e ajuste conforme necessário:
 
 ```
-VITE_API_BASE_URL=http://localhost:8080/api
-VITE_API_MOVIMENTO_USUARIO=admin
+VITE_FIREBASE_API_KEY=
+VITE_FIREBASE_AUTH_DOMAIN=
+VITE_FIREBASE_DATABASE_URL=
+VITE_FIREBASE_PROJECT_ID=
+VITE_FIREBASE_STORAGE_BUCKET=
+VITE_FIREBASE_MESSAGING_SENDER_ID=
+VITE_FIREBASE_APP_ID=
+VITE_FIREBASE_MEASUREMENT_ID=
 ```
-
-O cabeçalho `x-movimento-kairos-usuario` acompanha cada requisição ao backend e pode ser personalizado via `VITE_API_MOVIMENTO_USUARIO`.
-
-## Backend
 
 Os comandos do frontend podem ser executados a partir da raiz do repositório via workspace npm:
 
@@ -56,7 +58,4 @@ npm run lint
 
 ## Convenções
 
-- Interfaces do domínio com prefixo `I`.
-- Entidades JPA com sufixo `JpaEntity`.
-- Camada de aplicação sem regras de negócio; domínios sem dependência de Spring.
 - Reexecutar `npm run build` antes de publicar mudanças no frontend.

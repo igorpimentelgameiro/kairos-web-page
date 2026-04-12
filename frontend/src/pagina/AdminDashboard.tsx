@@ -9,8 +9,6 @@ import {
 } from "@dominio/servicos/inscricaoFirebaseServico";
 import type {ComprovantePagamentoDto} from "@dominio/dto/inscricaoDto";
 import {sair} from "@dominio/servicos/authServico";
-import ThemeSwitcher from "@componente/ThemeSwitcher";
-import type {ThemeName, ThemeOption} from "@componente/theme/themes";
 
 type Coluna = {
     key: string;
@@ -301,13 +299,7 @@ const gerarCsv = (inscricoes: InscricaoRegistrada[]): string => {
         .join("\n");
 };
 
-type AdminDashboardProps = {
-    temaAtual: ThemeOption;
-    temas: ThemeOption[];
-    onTemaChange: (nome: ThemeName) => void;
-};
-
-export default function AdminDashboard({temaAtual, temas, onTemaChange}: AdminDashboardProps) {
+export default function AdminDashboard() {
     const [inscricoes, setInscricoes] = useState<InscricaoRegistrada[]>([]);
     const [loading, setLoading] = useState(true);
     const [erro, setErro] = useState<string | null>(null);
@@ -710,7 +702,6 @@ export default function AdminDashboard({temaAtual, temas, onTemaChange}: AdminDa
                         </div>
                     </div>
                     <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-end">
-                        <ThemeSwitcher temaAtual={temaAtual} temas={temas} onChange={onTemaChange}/>
                         <div className="flex gap-2">
                             <button
                                 type="button"

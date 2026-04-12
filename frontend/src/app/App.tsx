@@ -1,4 +1,4 @@
-import {useMemo, useState} from "react";
+import {lazy, Suspense, useMemo, useState} from "react";
 import {AnimatePresence, motion} from "framer-motion";
 import Navbar from "@componente/Navbar";
 import {NAVIGATION_PAGES, PAGE_LABELS, type PageKey} from "@componente/Navbar.types";
@@ -7,21 +7,29 @@ import QuemSomos from "@pagina/QuemSomos";
 import Kasa from "@pagina/Kasa";
 import Benfeitor from "@pagina/Benfeitor";
 import Contato from "@pagina/Contato";
-import InscricaoRetiroKasaIII from "@pagina/InscricaoRetiroKasaIII";
 import {Github, HandHeart, Instagram, Linkedin, Mail, MapPin, Phone} from "lucide-react";
-import useTheme from "@componente/hooks/useTheme";
-import AdminLogin from "@pagina/AdminLogin";
+
+const AdminLogin = lazy(() => import("@pagina/AdminLogin"));
+const InscricaoRetiroKasaIII = lazy(() => import("@pagina/InscricaoRetiroKasaIII"));
+const FIXED_THEME_NAME = "Slate + Indigo";
 
 export default function App() {
-    const {temaAtual, definirTema, temasDisponiveis} = useTheme();
     const isAdminRoute =
         typeof window !== "undefined" &&
         window.location.pathname.replace(/\/+$/, "") === "/admin";
 
     if (isAdminRoute) {
         return (
-            <div className="min-h-screen bg-background text-foreground" data-theme={temaAtual.nome}>
-                <AdminLogin temaAtual={temaAtual} temas={temasDisponiveis} onTemaChange={definirTema}/>
+            <div className="min-h-screen bg-background text-foreground" data-theme={FIXED_THEME_NAME}>
+                <Suspense
+                    fallback={
+                        <div className="min-h-screen flex items-center justify-center px-4 text-sm text-muted-foreground">
+                            Carregando área administrativa...
+                        </div>
+                    }
+                >
+                    <AdminLogin/>
+                </Suspense>
             </div>
         );
     }
@@ -41,21 +49,28 @@ export default function App() {
             case "CONTATO":
                 return <Contato/>;
             case "INSCRICAO_KASA_III":
-                return <InscricaoRetiroKasaIII onVoltar={() => setPage("KASA")} />;
+                return (
+                    <Suspense
+                        fallback={
+                            <div className="min-h-[40vh] flex items-center justify-center px-4 text-sm text-muted-foreground">
+                                Carregando formulário de inscrição...
+                            </div>
+                        }
+                    >
+                        <InscricaoRetiroKasaIII onVoltar={() => setPage("KASA")} />
+                    </Suspense>
+                );
             default:
                 return null;
         }
     }, [page]);
 
     return (
-        <div className="min-h-screen bg-background text-foreground" data-theme={temaAtual.nome}>
+        <div className="min-h-screen bg-background text-foreground" data-theme={FIXED_THEME_NAME}>
             <Navbar
                 current={page}
                 onNavigate={setPage}
                 logoSrc="/assets/img/logo.png"
-                temaAtual={temaAtual}
-                temas={temasDisponiveis}
-                onTemaChange={definirTema}
             />
 
             <AnimatePresence mode="wait">

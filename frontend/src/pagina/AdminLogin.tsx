@@ -6,16 +6,8 @@ import {
     observarEstadoAutenticacao,
 } from "@dominio/servicos/authServico";
 import AdminDashboard from "@pagina/AdminDashboard";
-import ThemeSwitcher from "@componente/ThemeSwitcher";
-import type {ThemeName, ThemeOption} from "@componente/theme/themes";
 
-type AdminLoginProps = {
-    temaAtual: ThemeOption;
-    temas: ThemeOption[];
-    onTemaChange: (nome: ThemeName) => void;
-};
-
-export default function AdminLogin({temaAtual, temas, onTemaChange}: AdminLoginProps) {
+export default function AdminLogin() {
     const [username, setUsername] = useState("");
     const [password, setPassword] = useState("");
     const [submitting, setSubmitting] = useState(false);
@@ -80,7 +72,7 @@ export default function AdminLogin({temaAtual, temas, onTemaChange}: AdminLoginP
     }
 
     if (loggedIn) {
-        return <AdminDashboard temaAtual={temaAtual} temas={temas} onTemaChange={onTemaChange}/>;
+        return <AdminDashboard/>;
     }
 
     return (
@@ -97,12 +89,6 @@ export default function AdminLogin({temaAtual, temas, onTemaChange}: AdminLoginP
                         </div>
                     </div>
                     <div className="flex w-full flex-col gap-3 sm:w-auto sm:flex-row sm:items-center sm:justify-end">
-                        <ThemeSwitcher
-                            temaAtual={temaAtual}
-                            temas={temas}
-                            onChange={onTemaChange}
-                            className="w-full sm:w-auto justify-between sm:justify-start"
-                        />
                         <button
                             type="button"
                             onClick={() => {

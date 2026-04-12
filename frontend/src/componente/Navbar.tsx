@@ -2,23 +2,15 @@ import {useState} from "react";
 import {HandHeart, Home, Phone, Sparkles, Users} from "lucide-react";
 import type {LucideIcon} from "lucide-react";
 import {NAVIGATION_PAGES, PAGE_LABELS, type PageKey} from "@componente/Navbar.types";
-import ThemeSwitcher from "@componente/ThemeSwitcher";
-import type {ThemeName, ThemeOption} from "@componente/theme/themes";
 
 export default function Navbar({
                                    current,
                                    onNavigate,
                                    logoSrc = "/assets/img/logo.png",
-                                   temaAtual,
-                                   temas,
-                                   onTemaChange,
                                }: {
     current: PageKey;
     onNavigate: (k: PageKey) => void;
     logoSrc?: string;
-    temaAtual: ThemeOption;
-    temas: ThemeOption[];
-    onTemaChange: (nome: ThemeName) => void;
 }) {
     const [logoOk, setLogoOk] = useState(true);
     const logoWrapperClass = "h-11 w-11 rounded-2xl overflow-hidden flex items-center justify-center border bg-white";
@@ -78,9 +70,6 @@ export default function Navbar({
                         </button>
                     ))}
                 </nav>
-                <div className="flex items-center gap-3">
-                    <ThemeSwitcher temaAtual={temaAtual} temas={temas} onChange={onTemaChange}/>
-                </div>
             </div>
 
             {/* mobile */}
