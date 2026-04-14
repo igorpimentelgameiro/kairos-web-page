@@ -1,0 +1,13 @@
+# Local tool metadata
+.codex
+
+# IDE metadata
+.idea/*
+!.idea/.gitignore
+!.idea/vcs.xml
+!.idea/inspectionProfiles/
+!.idea/inspectionProfiles/Project_Default.xml
+
+# OS noise
+.DS_Store
+Thumbs.db
