@@ -8,6 +8,7 @@ Este projeto visa divulgar nosso carisma, missão e ações através de uma pág
 
 - `frontend/` → aplicação React + TypeScript + Vite
 - `dist/` e `assets/` na raiz → artefatos publicados para GitHub Pages
+- `docs/` → documentação operacional, prompts e anotações do projeto
 
 ## Frontend
 

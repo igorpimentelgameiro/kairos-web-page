@@ -1,4 +1,5 @@
 export type FormaPagamento = "PIX" | "CREDITO" | "DINHEIRO";
+export type StatusPagamento = "PENDENTE" | "PROCESSANDO" | "PAGO" | "ERRO";
 
 export type ResponsavelLegalDto = {
     nome: string;
@@ -20,6 +21,15 @@ export type ComprovantePagamentoDto = {
     enviadoEm?: string | null;
 };
 
+export type PagamentoDto = {
+    valor: number;
+    status: StatusPagamento;
+    detalhe?: string | null;
+    gateway?: string | null;
+    transacaoId?: string | null;
+    atualizadoEm?: number | null;
+};
+
 export type InscricaoRequestDto = {
     nomeCompleto: string;
     dataNascimento: string;
@@ -36,6 +46,8 @@ export type InscricaoRequestDto = {
     comunidadeOrigem: string;
     donsHabilidades: string;
     formaPagamento: FormaPagamento;
+    statusPagamento?: StatusPagamento | null;
+    pagamento?: PagamentoDto | null;
     comprovantePagamento?: ComprovantePagamentoDto | null;
     consentimentoImagem: boolean;
     consentimentoDados: boolean;

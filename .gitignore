@@ -11,6 +11,12 @@ frontend/.env.production.local
 # IDE
 .idea/
 .vscode/
+.codex
+
+# Java / Gradle backend artifacts
+backend/.gradle/
+backend/build/
+backend/.tools/
 
 # Logs
 npm-debug.log*

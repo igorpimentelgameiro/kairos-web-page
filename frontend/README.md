@@ -45,6 +45,7 @@ VITE_FIREBASE_STORAGE_BUCKET=
 VITE_FIREBASE_MESSAGING_SENDER_ID=
 VITE_FIREBASE_APP_ID=
 VITE_FIREBASE_MEASUREMENT_ID=
+VITE_PAGAMENTOS_API_URL=http://localhost:8080
 ```
 
 Os comandos do frontend podem ser executados a partir da raiz do repositório via workspace npm:

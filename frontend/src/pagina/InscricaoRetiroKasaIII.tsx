@@ -3,8 +3,9 @@ import type {ChangeEvent, FormEvent} from "react";
 import Section from "@componente/Section";
 import Card from "@componente/Card";
 import {ArrowLeft, CalendarClock, Check, ClipboardCheck, Copy, KeyRound, MapPin, Shield, XCircle} from "lucide-react";
-import {salvarInscricao} from "@dominio/servicos/inscricaoFirebaseServico";
-import type {ComprovantePagamentoDto, InscricaoRequestDto} from "@dominio/dto/inscricaoDto";
+import {observarInscricao, salvarInscricao} from "@dominio/servicos/inscricaoFirebaseServico";
+import {processarPagamentoCredito} from "@dominio/servicos/pagamentoApiServico";
+import type {ComprovantePagamentoDto, InscricaoRequestDto, StatusPagamento} from "@dominio/dto/inscricaoDto";
 
 type InscricaoRetiroKasaIIIProps = {
     onVoltar: () => void;
@@ -46,6 +47,10 @@ type InscricaoFormData = {
     dons: TalentoValue[];
     outrosDons: string;
     formaPagamento: FormaPagamento | "";
+    cartaoTitular: string;
+    cartaoNumero: string;
+    cartaoValidade: string;
+    cartaoCvv: string;
     comprovantePagamento: File | null;
     consentimentoImagem: boolean;
     consentimentoDados: boolean;
@@ -136,6 +141,10 @@ const criarFormularioInicial = (): InscricaoFormData => ({
     dons: [],
     outrosDons: "",
     formaPagamento: "",
+    cartaoTitular: "",
+    cartaoNumero: "",
+    cartaoValidade: "",
+    cartaoCvv: "",
     comprovantePagamento: null,
     consentimentoImagem: false,
     consentimentoDados: false,
@@ -198,7 +207,34 @@ const formatPhone = (value: string): string => {
 
 const isValidPhone = (value: string): boolean => toE164Phone(value) !== null;
 
-type SubmissionStatus = "idle" | "loading" | "success" | "error";
+type SubmissionStatus = "idle" | "loading" | "processing_payment" | "success" | "error";
+
+const CREDITO_NUMERO_PATTERN = /^\d{13,19}$/;
+const CREDITO_VALIDADE_PATTERN = /^(0[1-9]|1[0-2])\/\d{2}$/;
+const CREDITO_CVV_PATTERN = /^\d{3,4}$/;
+const VALOR_INSCRICAO = 150;
+
+const sanitizeDigits = (value: string): string => value.replace(/\D/g, "");
+
+const formatCardNumber = (value: string): string =>
+    sanitizeDigits(value)
+        .slice(0, 16)
+        .replace(/(\d{4})(?=\d)/g, "$1 ")
+        .trim();
+
+const formatCardExpiry = (value: string): string => {
+    const digits = sanitizeDigits(value).slice(0, 4);
+    if (digits.length <= 2) {
+        return digits;
+    }
+    return `${digits.slice(0, 2)}/${digits.slice(2)}`;
+};
+
+const gerarTokenPagamento = (dados: InscricaoFormData): string => {
+    const finais = sanitizeDigits(dados.cartaoNumero).slice(-4) || "0000";
+    const titular = dados.cartaoTitular.trim().replace(/\s+/g, "-").toLowerCase() || "sem-nome";
+    return `tok_${titular}_${finais}_${Date.now()}`;
+};
 
 const mapFormToDto = (
     dados: InscricaoFormData,
@@ -268,13 +304,19 @@ export default function InscricaoRetiroKasaIII({onVoltar}: InscricaoRetiroKasaII
     const [submittedName, setSubmittedName] = useState("");
     const [submittedContato, setSubmittedContato] = useState("");
     const [submissionId, setSubmissionId] = useState<string | null>(null);
+    const [submittedPaymentMethod, setSubmittedPaymentMethod] = useState<FormaPagamento | null>(null);
     const [pixCopyState, setPixCopyState] = useState<CopyState>("idle");
+    const [paymentStatus, setPaymentStatus] = useState<StatusPagamento>("PENDENTE");
+    const [paymentDetail, setPaymentDetail] = useState<string | null>(null);
 
     const limparFeedback = () => {
-        if (status === "success" || status === "error") {
+        if (status === "success" || status === "error" || status === "processing_payment") {
             setStatus("idle");
             setErrorMessage(null);
             setSubmissionId(null);
+            setSubmittedPaymentMethod(null);
+            setPaymentStatus("PENDENTE");
+            setPaymentDetail(null);
         }
     };
 
@@ -342,6 +384,41 @@ export default function InscricaoRetiroKasaIII({onVoltar}: InscricaoRetiroKasaII
         return () => clearTimeout(timeout);
     }, [pixCopyState]);
 
+    useEffect(() => {
+        if (!submissionId || submittedPaymentMethod === "PIX" || submittedPaymentMethod === "DINHEIRO") {
+            return undefined;
+        }
+
+        const unsubscribe = observarInscricao(
+            submissionId,
+            (inscricao) => {
+                if (!inscricao) {
+                    return;
+                }
+
+                const proximoStatus = inscricao.statusPagamento ?? inscricao.pagamento?.status ?? "PENDENTE";
+                setPaymentStatus(proximoStatus);
+                setPaymentDetail(inscricao.pagamento?.detalhe ?? inscricao.pagamento?.gateway ?? null);
+
+                if (proximoStatus === "PROCESSANDO") {
+                    setStatus("processing_payment");
+                } else if (proximoStatus === "PAGO") {
+                    setStatus("success");
+                } else if (proximoStatus === "ERRO") {
+                    setStatus("error");
+                    setErrorMessage(inscricao.pagamento?.detalhe ?? "O pagamento não foi confirmado.");
+                }
+            },
+            (error) => {
+                console.error("[InscricaoRetiroKasaIII] erro ao observar pagamento", error);
+                setStatus("error");
+                setErrorMessage("Não foi possível acompanhar o status do pagamento em tempo real.");
+            },
+        );
+
+        return () => unsubscribe();
+    }, [submissionId, submittedPaymentMethod]);
+
     const handleCopyPix = async () => {
         try {
             await copyToClipboard(PIX_KEY);
@@ -359,12 +436,26 @@ export default function InscricaoRetiroKasaIII({onVoltar}: InscricaoRetiroKasaII
                 ? ` pelo número informado (${submittedContato})`
                 : "";
             const protocolo = submissionId ? ` • Protocolo: ${submissionId}` : "";
+            if (paymentStatus === "PAGO") {
+                return `Pagamento confirmado, ${primeiroNome}! Sua inscrição foi atualizada em tempo real e nossa equipe seguirá o atendimento${contatoMensagem}.${protocolo}`;
+            }
             return `Obrigado, ${primeiroNome}! Recebemos a sua inscrição e entraremos em contato${contatoMensagem} para confirmar as próximas etapas.${protocolo}`;
         }
+        if (status === "processing_payment") {
+            const protocolo = submissionId ? ` Protocolo: ${submissionId}.` : "";
+            return `Inscrição recebida. Seu pagamento está sendo processado agora.${protocolo}`;
+        }
         return null;
-    }, [status, submissionId, submittedContato, submittedName]);
+    }, [paymentStatus, status, submissionId, submittedContato, submittedName]);
 
     const isMenor = form.menorIdade === "SIM";
+    const isCredito = form.formaPagamento === "CREDITO";
+
+    const creditoValido =
+        form.cartaoTitular.trim() !== "" &&
+        CREDITO_NUMERO_PATTERN.test(sanitizeDigits(form.cartaoNumero)) &&
+        CREDITO_VALIDADE_PATTERN.test(form.cartaoValidade.trim()) &&
+        CREDITO_CVV_PATTERN.test(sanitizeDigits(form.cartaoCvv));
 
     const isValid =
         form.nomeCompleto.trim() !== "" &&
@@ -378,6 +469,7 @@ export default function InscricaoRetiroKasaIII({onVoltar}: InscricaoRetiroKasaII
         form.contatoEmergenciaParentesco.trim() !== "" &&
         form.contatoEmergenciaContato.trim() !== "" &&
         form.formaPagamento !== "" &&
+        (form.formaPagamento !== "CREDITO" || creditoValido) &&
         (form.formaPagamento !== "PIX" || form.comprovantePagamento !== null) &&
         form.consentimentoDados &&
         form.consentimentoImagem &&
@@ -417,12 +509,17 @@ const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
             if (form.formaPagamento === "PIX" && !form.comprovantePagamento) {
                 setStatus("error");
                 setErrorMessage("Para pagamento via Pix, o comprovante é obrigatório.");
+            } else if (form.formaPagamento === "CREDITO" && !creditoValido) {
+                setStatus("error");
+                setErrorMessage("Preencha corretamente os dados simulados do cartão.");
             }
             return;
         }
         try {
             setStatus("loading");
             setErrorMessage(null);
+            setPaymentStatus("PENDENTE");
+            setPaymentDetail(null);
             let comprovanteDto: ComprovantePagamentoDto | null = null;
             if (form.comprovantePagamento && form.formaPagamento === "PIX") {
                 comprovanteDto = await criarComprovanteBase64(form.comprovantePagamento);
@@ -433,7 +530,20 @@ const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
             setSubmittedName(form.nomeCompleto);
             setSubmittedContato(telefoneFormatado);
             setSubmissionId(identificador);
-            setStatus("success");
+            setSubmittedPaymentMethod(form.formaPagamento as FormaPagamento);
+
+            if (form.formaPagamento === "CREDITO") {
+                setStatus("processing_payment");
+                setPaymentStatus("PROCESSANDO");
+                await processarPagamentoCredito({
+                    inscricaoId: identificador,
+                    valor: VALOR_INSCRICAO,
+                    tokenPagamento: gerarTokenPagamento(form),
+                });
+            } else {
+                setStatus("success");
+            }
+
             setForm(criarFormularioInicial());
         } catch (error) {
             console.error("[InscricaoRetiroKasaIII] erro ao salvar inscrição", error);
@@ -855,9 +965,51 @@ const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
                                         ))}
                                     </div>
                                     <p className="text-xs text-muted-foreground">
-                                        Cartão de crédito e dinheiro são pagos presencialmente; apenas Pix exige envio do comprovante.
+                                        Pix exige comprovante. Cartão de crédito é processado online em tempo real neste fluxo.
                                     </p>
                                 </div>
+
+                                {form.formaPagamento === "CREDITO" ? (
+                                    <div className="grid gap-3 rounded-xl border p-4 bg-muted/30">
+                                        <div className="text-sm font-medium text-foreground">Dados do cartão</div>
+                                        <p className="text-xs text-muted-foreground">
+                                            Ambiente de simulação. Use qualquer cartão válido no formato visual para testar o fluxo.
+                                        </p>
+                                        <div className="grid gap-3 md:grid-cols-2">
+                                            <input
+                                                className={FIELD_BASE_CLASS}
+                                                placeholder="Nome impresso no cartão"
+                                                value={form.cartaoTitular}
+                                                onChange={handleTextChange("cartaoTitular")}
+                                                required={isCredito}
+                                            />
+                                            <input
+                                                className={FIELD_BASE_CLASS}
+                                                placeholder="Número do cartão"
+                                                inputMode="numeric"
+                                                value={form.cartaoNumero}
+                                                onChange={(event) => updateField("cartaoNumero", formatCardNumber(event.target.value))}
+                                                required={isCredito}
+                                            />
+                                            <input
+                                                className={FIELD_BASE_CLASS}
+                                                placeholder="MM/AA"
+                                                inputMode="numeric"
+                                                value={form.cartaoValidade}
+                                                onChange={(event) => updateField("cartaoValidade", formatCardExpiry(event.target.value))}
+                                                required={isCredito}
+                                            />
+                                            <input
+                                                className={FIELD_BASE_CLASS}
+                                                placeholder="CVV"
+                                                inputMode="numeric"
+                                                value={form.cartaoCvv}
+                                                onChange={(event) => updateField("cartaoCvv", sanitizeDigits(event.target.value).slice(0, 4))}
+                                                required={isCredito}
+                                            />
+                                        </div>
+                                    </div>
+                                ) : null}
 
                                 <div className="grid gap-2">
                                     <label
@@ -923,9 +1075,19 @@ const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
                                 {errorMessage}
                             </div>
                         ) : null}
+                        {status === "processing_payment" ? (
+                            <div className="rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-700">
+                                Pagamento em processamento. O status desta inscrição será atualizado automaticamente sem recarregar a página.
+                            </div>
+                        ) : null}
                         {feedback ? (
                             <div className="rounded-xl border p-4 bg-primary/5 text-sm text-primary">
-                                {feedback}
+                                <div>{feedback}</div>
+                                {paymentDetail ? (
+                                    <div className="mt-2 text-xs text-primary/80">
+                                        Detalhe do pagamento: {paymentDetail}
+                                    </div>
+                                ) : null}
                             </div>
                         ) : null}
                     </Card>

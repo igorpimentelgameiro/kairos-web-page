@@ -1,6 +1,11 @@
 import {get, onValue, push, ref, remove, serverTimestamp, update} from "firebase/database";
 import {firebaseDatabase} from "@dominio/firebase/app";
-import type {ComprovantePagamentoDto, InscricaoRequestDto} from "@dominio/dto/inscricaoDto";
+import type {
+    ComprovantePagamentoDto,
+    InscricaoRequestDto,
+    PagamentoDto,
+    StatusPagamento,
+} from "@dominio/dto/inscricaoDto";
 
 const INSCRICOES_PATH = "inscricoes";
 
@@ -10,6 +15,8 @@ type NormalizedInscricao = InscricaoRequestDto & {
 
 const normalizarPayload = (payload: InscricaoRequestDto): NormalizedInscricao => ({
     ...payload,
+    statusPagamento: payload.statusPagamento ?? "PENDENTE",
+    pagamento: payload.pagamento ?? null,
     responsavelLegal: payload.responsavelLegal ?? null,
     alergiasIntolerancias: payload.alergiasIntolerancias ?? null,
     necessidadesEspeciais: payload.necessidadesEspeciais ?? null,
@@ -17,6 +24,43 @@ const normalizarPayload = (payload: InscricaoRequestDto): NormalizedInscricao =>
     observacoes: payload.observacoes ?? null,
     criadoEm: serverTimestamp(),
 });
+
+const normalizarStatusPagamento = (valor: unknown): StatusPagamento => {
+    switch (valor) {
+        case "PROCESSANDO":
+        case "PAGO":
+        case "ERRO":
+        case "PENDENTE":
+            return valor;
+        default:
+            return "PENDENTE";
+    }
+};
+
+const normalizarPagamentoValor = (valor: unknown): PagamentoDto | null => {
+    if (!valor || typeof valor !== "object") {
+        return null;
+    }
+
+    const registro = valor as Record<string, unknown>;
+    const valorNumero =
+        typeof registro.valor === "number"
+            ? registro.valor
+            : typeof registro.valor === "string"
+              ? Number.parseFloat(registro.valor)
+              : 0;
+    const atualizadoEm =
+        typeof registro.atualizadoEm === "number" ? registro.atualizadoEm : null;
+
+    return {
+        valor: Number.isFinite(valorNumero) ? valorNumero : 0,
+        status: normalizarStatusPagamento(registro.status),
+        detalhe: typeof registro.detalhe === "string" ? registro.detalhe : null,
+        gateway: typeof registro.gateway === "string" ? registro.gateway : null,
+        transacaoId: typeof registro.transacaoId === "string" ? registro.transacaoId : null,
+        atualizadoEm,
+    };
+};
 
 const normalizarComprovanteValor = (valor: unknown): ComprovantePagamentoDto | null => {
     if (!valor) {
@@ -90,14 +134,63 @@ export const listarInscricoes = async (): Promise<InscricaoRegistrada[]> => {
         const criadoEmNumero =
             typeof valor?.criadoEm === "number" ? valor.criadoEm : undefined;
         const comprovantePagamento = normalizarComprovanteValor(valor?.comprovantePagamento);
+        const pagamento = normalizarPagamentoValor(valor?.pagamento);
+        const statusPagamento = normalizarStatusPagamento(valor?.statusPagamento ?? pagamento?.status);
         return {
             id,
             ...valor,
             idade: Number.isNaN(idadeNumero) ? 0 : idadeNumero,
             criadoEm: criadoEmNumero,
+            statusPagamento,
+            pagamento,
             comprovantePagamento,
         } as InscricaoRegistrada;
     });
+};
+
+export const observarInscricao = (
+    inscricaoId: string,
+    onChange: (inscricao: InscricaoRegistrada | null) => void,
+    onError?: (error: Error) => void,
+): (() => void) => {
+    const referencia = ref(firebaseDatabase, `${INSCRICOES_PATH}/${inscricaoId}`);
+    const unsubscribe = onValue(
+        referencia,
+        (snapshot) => {
+            if (!snapshot.exists()) {
+                onChange(null);
+                return;
+            }
+
+            const valor = snapshot.val() as Record<string, any>;
+            const idadeNumero = Number.parseInt(valor?.idade ?? "0", 10);
+            const criadoEmNumero =
+                typeof valor?.criadoEm === "number" ? valor.criadoEm : undefined;
+            const comprovantePagamento = normalizarComprovanteValor(valor?.comprovantePagamento);
+            const pagamento = normalizarPagamentoValor(valor?.pagamento);
+            const statusPagamento = normalizarStatusPagamento(valor?.statusPagamento ?? pagamento?.status);
+
+            onChange({
+                id: inscricaoId,
+                ...valor,
+                idade: Number.isNaN(idadeNumero) ? 0 : idadeNumero,
+                criadoEm: criadoEmNumero,
+                statusPagamento,
+                pagamento,
+                comprovantePagamento,
+            } as InscricaoRegistrada);
+        },
+        (firebaseError) => {
+            const error =
+                firebaseError instanceof Error
+                    ? firebaseError
+                    : new Error(String(firebaseError));
+            console.error("[observarInscricao] erro ao ouvir inscrição:", error);
+            onError?.(error);
+        },
+    );
+
+    return () => unsubscribe();
 };
 
 export const atualizarInscricao = async (inscricao: InscricaoRegistrada): Promise<void> => {
