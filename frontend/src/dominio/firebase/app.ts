@@ -13,8 +13,26 @@ type FirebaseConfigKeys =
     | "VITE_FIREBASE_MESSAGING_SENDER_ID"
     | "VITE_FIREBASE_APP_ID";
 
+type ViteEnv = Partial<Record<FirebaseConfigKeys | "VITE_FIREBASE_MEASUREMENT_ID", string>>;
+
+const getViteEnv = (): ViteEnv => {
+    const testEnv = (globalThis as typeof globalThis & {__VITE_ENV__?: ViteEnv}).__VITE_ENV__;
+    if (testEnv) {
+        return testEnv;
+    }
+    try {
+        return Function(
+            "try { return import.meta.env ?? {}; } catch (_error) { return {}; }",
+        )() as ViteEnv;
+    } catch (_error) {
+        return {};
+    }
+};
+
+const viteEnv = getViteEnv();
+
 const resolveEnv = (key: FirebaseConfigKeys): string => {
-    const value = import.meta.env[key];
+    const value = viteEnv[key];
     if (!value) {
         throw new Error(`Firebase configuração ausente: defina ${key} no seu arquivo .env`);
     }
@@ -45,7 +63,7 @@ const firebaseConfig: FirebaseOptions = {
     appId: resolveEnv("VITE_FIREBASE_APP_ID"),
 };
 
-const measurementId = import.meta.env.VITE_FIREBASE_MEASUREMENT_ID;
+const measurementId = viteEnv.VITE_FIREBASE_MEASUREMENT_ID;
 
 if (measurementId) {
     firebaseConfig.measurementId = measurementId;

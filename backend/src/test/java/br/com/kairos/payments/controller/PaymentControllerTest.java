@@ -8,6 +8,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 
 import br.com.kairos.payments.dto.PaymentRequest;
 import br.com.kairos.payments.dto.PaymentResponse;
+import br.com.kairos.payments.exception.FirebaseUpdateException;
 import br.com.kairos.payments.exception.GlobalExceptionHandler;
 import br.com.kairos.payments.exception.PaymentProcessingException;
 import br.com.kairos.payments.service.PaymentService;
@@ -84,5 +85,45 @@ class PaymentControllerTest {
             .andExpect(status().isBadGateway())
             .andExpect(jsonPath("$.error").value("Payment processing failed"))
             .andExpect(jsonPath("$.details[0]").value("Gateway recusou o token de pagamento informado."));
+    }
+
+    @Test
+    void deveRetornarErroInternoQuandoAtualizacaoNoFirebaseFalhar() throws Exception {
+        when(paymentService.process(any(PaymentRequest.class))).thenThrow(
+            new FirebaseUpdateException("Falha ao atualizar status", new RuntimeException("boom"))
+        );
+
+        mockMvc.perform(post("/pagamentos")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content("""
+                    {
+                      "inscricaoId": "insc-123",
+                      "valor": 150.00,
+                      "tokenPagamento": "tok_demo_123"
+                    }
+                    """))
+            .andExpect(status().isInternalServerError())
+            .andExpect(jsonPath("$.error").value("Firebase update failed"))
+            .andExpect(jsonPath("$.details[0]").value("Falha ao atualizar status"));
+    }
+
+    @Test
+    void deveRetornarErroInternoQuandoOcorrrerErroInesperado() throws Exception {
+        when(paymentService.process(any(PaymentRequest.class))).thenThrow(
+            new IllegalStateException("Falha inesperada")
+        );
+
+        mockMvc.perform(post("/pagamentos")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content("""
+                    {
+                      "inscricaoId": "insc-123",
+                      "valor": 150.00,
+                      "tokenPagamento": "tok_demo_123"
+                    }
+                    """))
+            .andExpect(status().isInternalServerError())
+            .andExpect(jsonPath("$.error").value("Unexpected server error"))
+            .andExpect(jsonPath("$.details[0]").value("Falha inesperada"));
     }
 }

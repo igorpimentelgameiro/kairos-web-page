@@ -10,7 +10,18 @@ type ProcessarPagamentoCreditoResponse = {
     inscricaoId: string;
 };
 
-const API_BASE_URL = import.meta.env.VITE_PAGAMENTOS_API_URL?.trim() || "http://localhost:8080";
+const resolveApiBaseUrl = (): string => {
+    try {
+        const viteEnvValue = Function(
+            "try { return import.meta.env?.VITE_PAGAMENTOS_API_URL; } catch (_error) { return undefined; }",
+        )() as string | undefined;
+        return viteEnvValue?.trim() || "http://localhost:8080";
+    } catch (_error) {
+        return "http://localhost:8080";
+    }
+};
+
+const API_BASE_URL = resolveApiBaseUrl();
 
 export const processarPagamentoCredito = async (
     payload: ProcessarPagamentoCreditoRequest,

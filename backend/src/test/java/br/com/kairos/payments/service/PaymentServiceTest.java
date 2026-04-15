@@ -82,4 +82,26 @@ class PaymentServiceTest {
         verify(reference, times(2)).updateChildrenAsync(anyMap());
         assertThat(response.status()).isEqualTo("PROCESSANDO");
     }
+
+    @Test
+    void deveAtualizarErroQuandoProcessamentoForInterrompido() {
+        FirebaseDatabase firebaseDatabase = mock(FirebaseDatabase.class);
+        DatabaseReference reference = mock(DatabaseReference.class);
+        when(firebaseDatabase.getReference("inscricoes/insc-interrompida")).thenReturn(reference);
+        when(reference.updateChildrenAsync(anyMap())).thenReturn(ApiFutures.immediateFuture(null));
+
+        PaymentService paymentService = new PaymentService(firebaseDatabase, Runnable::run);
+
+        Thread.currentThread().interrupt();
+        try {
+            PaymentResponse response = paymentService.process(
+                new PaymentRequest("insc-interrompida", BigDecimal.valueOf(150), "tok_demo_123")
+            );
+
+            verify(reference, times(2)).updateChildrenAsync(anyMap());
+            assertThat(response.status()).isEqualTo("PROCESSANDO");
+        } finally {
+            Thread.interrupted();
+        }
+    }
 }
