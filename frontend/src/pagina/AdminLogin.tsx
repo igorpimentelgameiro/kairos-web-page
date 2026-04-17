@@ -64,7 +64,9 @@ export default function AdminLogin() {
         return (
             <div className="min-h-screen flex items-center justify-center bg-background text-foreground px-4">
                 <div className="text-center space-y-4">
-                    <img src="/assets/img/logo.png" alt="Movimento Kairós" className="h-16 w-16 mx-auto object-contain"/>
+                    <div className="image-hover-shell mx-auto h-16 w-16 rounded-2xl">
+                        <img src="/assets/img/logo.png" alt="Movimento Kairós" className="image-hover-media h-16 w-16 mx-auto object-contain"/>
+                    </div>
                     <p className="text-sm text-muted-foreground">Verificando sessão...</p>
                 </div>
             </div>
@@ -80,8 +82,8 @@ export default function AdminLogin() {
             <div className="mx-auto flex w-full max-w-4xl flex-col gap-10 px-4 py-10">
                 <header className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
                     <div className="flex items-center gap-3">
-                        <div className="h-14 w-14 rounded-2xl border bg-white shadow flex items-center justify-center">
-                            <img src="/assets/img/logo.png" alt="Movimento Kairós" className="h-12 w-12 object-contain"/>
+                        <div className="image-hover-shell h-14 w-14 rounded-2xl border bg-white shadow flex items-center justify-center transition-transform duration-300 hover:-translate-y-0.5">
+                            <img src="/assets/img/logo.png" alt="Movimento Kairós" className="image-hover-media h-12 w-12 object-contain"/>
                         </div>
                         <div className="space-y-0.5">
                             <h1 className="text-sm font-semibold uppercase tracking-[0.2em] text-muted-foreground">Movimento Kairós</h1>

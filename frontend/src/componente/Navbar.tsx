@@ -40,11 +40,11 @@ export default function Navbar({
             <div className="max-w-6xl mx-auto px-4 h-16 flex items-center justify-between">
                 <div className="flex items-center gap-3">
                     {logoOk ? (
-                        <div className={`${logoWrapperClass} shadow`}>
+                        <div className={`${logoWrapperClass} image-hover-shell shadow transition-transform duration-300 hover:-translate-y-0.5`}>
                             <img
                                 src={logoSrc}
                                 alt="Movimento Kairós"
-                                className="h-10 w-10 object-contain"
+                                className="image-hover-media h-10 w-10 object-contain"
                                 onError={() => setLogoOk(false)}
                             />
                         </div>

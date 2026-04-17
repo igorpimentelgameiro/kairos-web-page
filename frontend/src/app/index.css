@@ -121,3 +121,35 @@
 .text-primary-foreground {
     color: var(--primary-foreground);
 }
+
+.image-hover-shell {
+    position: relative;
+    overflow: hidden;
+}
+
+.image-hover-shell::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(135deg, rgba(255, 255, 255, 0.18), transparent 58%);
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 220ms ease;
+}
+
+.image-hover-media {
+    transition:
+        transform 320ms ease,
+        filter 320ms ease;
+    transform-origin: center;
+    will-change: transform;
+}
+
+.image-hover-shell:hover .image-hover-media {
+    transform: scale(1.045);
+    filter: saturate(1.08) contrast(1.02);
+}
+
+.image-hover-shell:hover::after {
+    opacity: 1;
+}

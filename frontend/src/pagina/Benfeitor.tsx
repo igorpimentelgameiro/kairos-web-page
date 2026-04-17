@@ -92,7 +92,9 @@ export default function Benfeitor() {
                     <p className="mt-3 text-muted-foreground">Use a chave Pix abaixo para contribuir com qualquer
                         valor.</p>
                     <div className="mt-4 grid grid-cols-[auto,1fr] gap-x-3 gap-y-2 items-center">
-                        <img src="/assets/img/qrcode-kairos.png" alt="QR Code" className="w-28 h-28 object-contain"/>
+                        <div className="image-hover-shell w-28 h-28 rounded-2xl border bg-white/70 p-2 shadow-sm">
+                            <img src="/assets/img/qrcode-kairos.png" alt="QR Code" className="image-hover-media w-full h-full object-contain"/>
+                        </div>
                         <div>
                             <div className="text-sm text-muted-foreground">Chave Pix</div>
                             <div className="font-mono text-base md:text-lg select-all">{PIX_KEY}</div>

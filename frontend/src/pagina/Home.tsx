@@ -44,12 +44,16 @@ export default function Home({onCTA, goBenfeitor}: { onCTA: () => void; goBenfei
                     <Card className="overflow-hidden">
                         {/* tenta usar imagem local e cai para Unsplash se faltar */}
                         <div
-                            className="aspect-[16/10] w-full bg-cover bg-center"
+                            className="image-hover-shell aspect-[16/10] w-full"
+                        >
+                            <div
+                                className="image-hover-media h-full w-full bg-cover bg-center"
                             style={{
                                 backgroundImage:
                                     "url(/assets/img/bg-masthead.jpg)",
                             }}
-                        />
+                            />
+                        </div>
                         <div className="p-5">
                             <div className="font-semibold">Família em Cristo</div>
                             <p className="text-sm text-muted-foreground">O Kairós é mais que amizade: é unidade,

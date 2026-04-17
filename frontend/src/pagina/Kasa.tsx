@@ -49,8 +49,12 @@ export default function Kasa({onParticipar}: KasaProps) {
                         },
                     ].map((k, i) => (
                         <Card key={i} className="overflow-hidden">
-                            <div className="aspect-[4/3] bg-cover bg-center"
-                                 style={{backgroundImage: `url(${k.img})`}}/>
+                            <div className="image-hover-shell aspect-[4/3]">
+                                <div
+                                    className="image-hover-media h-full w-full bg-cover bg-center"
+                                    style={{backgroundImage: `url(${k.img})`}}
+                                />
+                            </div>
                             <div className="p-5">
                                 <Pill><Sparkles className="size-3.5"/> {k.tag}</Pill>
                                 <p className="mt-3 text-muted-foreground">{k.text}</p>

@@ -691,8 +691,8 @@ export default function AdminDashboard() {
             <div className="mx-auto flex w-full max-w-6xl flex-col gap-6">
                 <header className="flex flex-col gap-6 lg:flex-row lg:items-center lg:justify-between">
                     <div className="flex items-center gap-3">
-                        <div className="h-14 w-14 rounded-2xl border bg-white shadow flex items-center justify-center">
-                            <img src="/assets/img/logo.png" alt="Movimento Kairós" className="h-12 w-12 object-contain"/>
+                        <div className="image-hover-shell h-14 w-14 rounded-2xl border bg-white shadow flex items-center justify-center transition-transform duration-300 hover:-translate-y-0.5">
+                            <img src="/assets/img/logo.png" alt="Movimento Kairós" className="image-hover-media h-12 w-12 object-contain"/>
                         </div>
                         <div className="space-y-0.5">
                             <h1 className="flex items-center gap-2 text-base font-semibold uppercase tracking-[0.2em] text-muted-foreground">

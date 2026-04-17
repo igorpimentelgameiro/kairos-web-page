@@ -19,10 +19,23 @@ npm install
 npm run dev
 npm run build
 npm run lint
-npm run deploy:prepare
 ```
 
-`npm run deploy:prepare` gera o build em `frontend/dist`, sincroniza `dist/` e atualiza `index.html`, `assets/` e `vite.svg` publicados na raiz.
+## Publicação
+
+O deploy do site agora é automático via GitHub Actions.
+
+- Cada `push` para a branch `kairos-page-v3` executa testes, gera o build do `frontend/` e publica no GitHub Pages.
+- O domínio customizado `kairosmov.com.br` é preservado pelo arquivo `CNAME`.
+- O `404.html` continua sendo enviado junto do artefato para manter o fallback de rotas do SPA.
+
+Para habilitar o fluxo no repositório:
+
+1. Em `Settings > Pages`, selecione `GitHub Actions` como source.
+2. Garanta que o fluxo esteja versionado na branch `kairos-page-v3`.
+3. Faça push das mudanças para disparar o workflow `.github/workflows/deploy-pages.yml`.
+
+`npm run deploy:prepare` pode continuar existindo para uso local, mas não é mais necessário para publicar o site.
 
 ---
 
