@@ -29,10 +29,8 @@ const getViteEnv = (): ViteEnv => {
     }
 };
 
-const viteEnv = getViteEnv();
-
 const resolveEnv = (key: FirebaseConfigKeys): string => {
-    const value = viteEnv[key];
+    const value = getViteEnv()[key];
     if (!value) {
         throw new Error(`Firebase configuração ausente: defina ${key} no seu arquivo .env`);
     }
@@ -53,23 +51,31 @@ const normalizarBucket = (rawBucket: string): string => {
     return bucket;
 };
 
-const firebaseConfig: FirebaseOptions = {
-    apiKey: resolveEnv("VITE_FIREBASE_API_KEY"),
-    authDomain: resolveEnv("VITE_FIREBASE_AUTH_DOMAIN"),
-    databaseURL: resolveEnv("VITE_FIREBASE_DATABASE_URL"),
-    projectId: resolveEnv("VITE_FIREBASE_PROJECT_ID"),
-    storageBucket: normalizarBucket(resolveEnv("VITE_FIREBASE_STORAGE_BUCKET")),
-    messagingSenderId: resolveEnv("VITE_FIREBASE_MESSAGING_SENDER_ID"),
-    appId: resolveEnv("VITE_FIREBASE_APP_ID"),
+const criarFirebaseConfig = (): FirebaseOptions => {
+    const viteEnv = getViteEnv();
+    const firebaseConfig: FirebaseOptions = {
+        apiKey: resolveEnv("VITE_FIREBASE_API_KEY"),
+        authDomain: resolveEnv("VITE_FIREBASE_AUTH_DOMAIN"),
+        databaseURL: resolveEnv("VITE_FIREBASE_DATABASE_URL"),
+        projectId: resolveEnv("VITE_FIREBASE_PROJECT_ID"),
+        storageBucket: normalizarBucket(resolveEnv("VITE_FIREBASE_STORAGE_BUCKET")),
+        messagingSenderId: resolveEnv("VITE_FIREBASE_MESSAGING_SENDER_ID"),
+        appId: resolveEnv("VITE_FIREBASE_APP_ID"),
+    };
+
+    const measurementId = viteEnv.VITE_FIREBASE_MEASUREMENT_ID;
+    if (measurementId) {
+        firebaseConfig.measurementId = measurementId;
+    }
+
+    return firebaseConfig;
 };
 
-const measurementId = viteEnv.VITE_FIREBASE_MEASUREMENT_ID;
+export const obterFirebaseApp = () =>
+    (getApps().length ? getApp() : initializeApp(criarFirebaseConfig()));
 
-if (measurementId) {
-    firebaseConfig.measurementId = measurementId;
-}
+export const obterFirebaseDatabase = () => getDatabase(obterFirebaseApp());
 
-export const firebaseApp = getApps().length ? getApp() : initializeApp(firebaseConfig);
-export const firebaseDatabase = getDatabase(firebaseApp);
-export const firebaseAuth = getAuth(firebaseApp);
-export const firebaseStorage = getStorage(firebaseApp);
+export const obterFirebaseAuth = () => getAuth(obterFirebaseApp());
+
+export const obterFirebaseStorage = () => getStorage(obterFirebaseApp());

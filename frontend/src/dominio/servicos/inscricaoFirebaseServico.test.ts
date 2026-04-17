@@ -9,7 +9,7 @@ const serverTimestampMock = jest.fn(() => "server-timestamp");
 const updateMock = jest.fn();
 
 jest.mock("@dominio/firebase/app", () => ({
-    firebaseDatabase: {app: "firebase"},
+    obterFirebaseDatabase: () => ({app: "firebase"}),
 }));
 
 jest.mock("firebase/database", () => ({

@@ -5,7 +5,7 @@ describe("pagamentoApiServico", () => {
 
     beforeEach(() => {
         fetchMock.mockReset();
-        global.fetch = fetchMock as unknown as typeof fetch;
+        globalThis.fetch = fetchMock as unknown as typeof fetch;
     });
 
     test("deve processar pagamento com sucesso", async () => {

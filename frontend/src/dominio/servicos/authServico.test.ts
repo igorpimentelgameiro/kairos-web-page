@@ -5,7 +5,7 @@ const signInWithEmailAndPasswordMock = jest.fn();
 const signOutMock = jest.fn();
 
 jest.mock("@dominio/firebase/app", () => ({
-    firebaseAuth: {kind: "auth"},
+    obterFirebaseAuth: () => ({kind: "auth"}),
 }));
 
 jest.mock("firebase/auth", () => ({

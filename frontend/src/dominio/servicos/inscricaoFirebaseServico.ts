@@ -1,5 +1,5 @@
 import {get, onValue, push, ref, remove, serverTimestamp, update} from "firebase/database";
-import {firebaseDatabase} from "@dominio/firebase/app";
+import {obterFirebaseDatabase} from "@dominio/firebase/app";
 import type {
     ComprovantePagamentoDto,
     InscricaoRequestDto,
@@ -110,6 +110,7 @@ const normalizarComprovanteValor = (valor: unknown): ComprovantePagamentoDto | n
 };
 
 export const salvarInscricao = async (payload: InscricaoRequestDto): Promise<string> => {
+    const firebaseDatabase = obterFirebaseDatabase();
     const referencia = ref(firebaseDatabase, INSCRICOES_PATH);
     const novaInscricao = await push(referencia, normalizarPayload(payload));
     if (!novaInscricao.key) {
@@ -124,6 +125,7 @@ export type InscricaoRegistrada = InscricaoRequestDto & {
 };
 
 export const listarInscricoes = async (): Promise<InscricaoRegistrada[]> => {
+    const firebaseDatabase = obterFirebaseDatabase();
     const snapshot = await get(ref(firebaseDatabase, INSCRICOES_PATH));
     if (!snapshot.exists()) {
         return [];
@@ -153,6 +155,7 @@ export const observarInscricao = (
     onChange: (inscricao: InscricaoRegistrada | null) => void,
     onError?: (error: Error) => void,
 ): (() => void) => {
+    const firebaseDatabase = obterFirebaseDatabase();
     const referencia = ref(firebaseDatabase, `${INSCRICOES_PATH}/${inscricaoId}`);
     const unsubscribe = onValue(
         referencia,
@@ -194,6 +197,7 @@ export const observarInscricao = (
 };
 
 export const atualizarInscricao = async (inscricao: InscricaoRegistrada): Promise<void> => {
+    const firebaseDatabase = obterFirebaseDatabase();
     const {id, ...dados} = inscricao;
     const referencia = ref(firebaseDatabase, `${INSCRICOES_PATH}/${id}`);
     const payload: Record<string, unknown> = {
@@ -207,6 +211,7 @@ export const observarTotalInscricoes = (
     onChange: (total: number) => void,
     onError?: (error: Error) => void,
 ): (() => void) => {
+    const firebaseDatabase = obterFirebaseDatabase();
     const referencia = ref(firebaseDatabase, INSCRICOES_PATH);
     const unsubscribe = onValue(
         referencia,
@@ -234,6 +239,7 @@ export const removerInscricoes = async (ids: string[]): Promise<void> => {
     if (ids.length === 0) {
         return;
     }
+    const firebaseDatabase = obterFirebaseDatabase();
     await Promise.all(
         ids.map((id) => remove(ref(firebaseDatabase, `${INSCRICOES_PATH}/${id}`))),
     );

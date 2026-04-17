@@ -61,16 +61,16 @@ describe("firebase app", () => {
 
         const modulo = await import("./app");
 
+        expect(modulo.obterFirebaseApp()).toEqual({kind: "firebase-app"});
         expect(initializeAppMock).toHaveBeenCalledWith(
             expect.objectContaining({
                 storageBucket: "kairos.appspot.com",
                 measurementId: "measure-id",
             }),
         );
-        expect(modulo.firebaseApp).toEqual({kind: "firebase-app"});
-        expect(modulo.firebaseDatabase).toEqual({kind: "db"});
-        expect(modulo.firebaseAuth).toEqual({kind: "auth"});
-        expect(modulo.firebaseStorage).toEqual({kind: "storage"});
+        expect(modulo.obterFirebaseDatabase()).toEqual({kind: "db"});
+        expect(modulo.obterFirebaseAuth()).toEqual({kind: "auth"});
+        expect(modulo.obterFirebaseStorage()).toEqual({kind: "storage"});
     });
 
     test("deve reutilizar app já existente", async () => {
@@ -82,16 +82,19 @@ describe("firebase app", () => {
 
         const modulo = await import("./app");
 
+        expect(modulo.obterFirebaseApp()).toEqual({kind: "existing-app"});
         expect(getAppMock).toHaveBeenCalled();
         expect(initializeAppMock).not.toHaveBeenCalled();
-        expect(modulo.firebaseApp).toEqual({kind: "existing-app"});
     });
 
-    test("deve falhar quando faltar variável obrigatória", async () => {
+    test("deve falhar quando faltar variável obrigatória ao solicitar a inicialização", async () => {
+        getAppsMock.mockReturnValue([]);
         delete (globalThis as typeof globalThis & {__VITE_ENV__?: Record<string, string>}).__VITE_ENV__!
             .VITE_FIREBASE_API_KEY;
 
-        await expect(import("./app")).rejects.toThrow(
+        const modulo = await import("./app");
+
+        expect(() => modulo.obterFirebaseApp()).toThrow(
             "Firebase configuração ausente: defina VITE_FIREBASE_API_KEY no seu arquivo .env",
         );
     });
